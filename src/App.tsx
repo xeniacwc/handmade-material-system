@@ -1,4 +1,4 @@
-import React from 'react';
+import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import { useStore } from './store/useStore';
@@ -16,7 +16,7 @@ function App() {
   const loadFromSupabase = useStore((s) => s.loadFromSupabase);
 
   // Load data from Supabase on first mount
-  React.useEffect(() => {
+  useEffect(() => {
     loadFromSupabase();
   }, [loadFromSupabase]);
 

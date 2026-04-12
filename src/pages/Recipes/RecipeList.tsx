@@ -1,9 +1,9 @@
-import React from 'react';
+
 import { useStore } from '../../store/useStore';
 import { ScrollText, ChevronRight } from 'lucide-react';
 
 export function RecipeList() {
-  const { recipes, materials } = useStore();
+  const { recipes, materials, batches } = useStore();
 
   return (
     <div className="p-4 animate-in fade-in duration-300">
@@ -20,8 +20,11 @@ export function RecipeList() {
           {recipes.map((r) => {
             // Calculate total cost on the fly for display
             const cost = r.items.reduce((sum, item) => {
-              const m = materials.find(mat => mat.id === item.materialId);
-              return sum + (m?.unitCost || 0) * item.quantity;
+              const materialBatches = batches
+                .filter(b => b.materialId === item.materialId)
+                .sort((a, b) => b.createdAt - a.createdAt);
+              const latestUnitCost = materialBatches[0]?.unitCost || 0;
+              return sum + latestUnitCost * item.quantity;
             }, 0);
 
             // Get exactly 3 first material images to show

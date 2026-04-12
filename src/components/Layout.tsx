@@ -1,6 +1,6 @@
 import React from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { Package, ScrollText, Scissors, Plus, X, Wifi, WifiOff, Loader2 } from 'lucide-react';
+import { Package, ScrollText, Scissors, Plus, WifiOff, Loader2 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { useStore } from '../store/useStore';

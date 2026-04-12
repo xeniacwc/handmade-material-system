@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ChevronLeft, Edit2, Plus, Box, Calendar, DollarSign, Store, Filter } from 'lucide-react';
 import { useStore } from '../../store/useStore';
-import type { PurchaseSource } from '../../store/useStore';
+
 
 export function MaterialDetail() {
   const navigate = useNavigate();

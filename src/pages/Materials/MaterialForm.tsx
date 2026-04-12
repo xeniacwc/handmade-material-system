@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ChevronLeft, Plus, X } from 'lucide-react';
+import { ChevronLeft, X } from 'lucide-react';
 import { useStore } from '../../store/useStore';
-import type { PurchaseSource } from '../../store/useStore';
+
 import { ImageUploader } from '../../components/ImageUploader';
 
 export function MaterialForm() {
