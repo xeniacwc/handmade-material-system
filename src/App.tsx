@@ -1,8 +1,9 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Layout } from './components/Layout';
+import { useStore } from './store/useStore';
 
-// Pages placeholders
+// Pages
 import { MaterialList } from './pages/Materials/MaterialList';
 import { MaterialForm } from './pages/Materials/MaterialForm';
 import { MaterialDetail } from './pages/Materials/MaterialDetail';
@@ -12,6 +13,13 @@ import { ProductList } from './pages/Products/ProductList';
 import { ProductForm } from './pages/Products/ProductForm';
 
 function App() {
+  const loadFromSupabase = useStore((s) => s.loadFromSupabase);
+
+  // Load data from Supabase on first mount
+  React.useEffect(() => {
+    loadFromSupabase();
+  }, [loadFromSupabase]);
+
   return (
     <BrowserRouter>
       <Routes>

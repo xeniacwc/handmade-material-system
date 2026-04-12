@@ -1,11 +1,42 @@
 import React from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { Package, ScrollText, Scissors, Plus, X } from 'lucide-react';
+import { Package, ScrollText, Scissors, Plus, X, Wifi, WifiOff, Loader2 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { useStore } from '../store/useStore';
 
 function cn(...inputs: (string | undefined | null | false)[]) {
   return twMerge(clsx(inputs));
+}
+
+function SyncIndicator() {
+  const syncStatus = useStore((s) => s.syncStatus);
+  const syncError = useStore((s) => s.syncError);
+
+  if (syncStatus === 'loading') {
+    return (
+      <div className="flex items-center gap-1.5 text-xs text-foreground/50" title="從 Supabase 載入中...">
+        <Loader2 size={13} className="animate-spin text-blue-400" />
+        <span className="hidden sm:inline">同步中</span>
+      </div>
+    );
+  }
+
+  if (syncStatus === 'error') {
+    return (
+      <div className="flex items-center gap-1.5 text-xs text-red-400" title={syncError || '同步失敗'}>
+        <WifiOff size={13} />
+        <span className="hidden sm:inline">離線</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-1.5 text-xs text-foreground/40" title="已連接 Supabase">
+      <span className="w-2 h-2 rounded-full bg-green-400 shadow-[0_0_6px_rgba(74,222,128,0.7)]" />
+      <span className="hidden sm:inline text-green-400/70">已同步</span>
+    </div>
+  );
 }
 
 export function Layout() {
@@ -31,8 +62,13 @@ export function Layout() {
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-background">
+      {/* Top status bar */}
+      <div className="flex items-center justify-end px-4 pt-safe h-9 shrink-0">
+        <SyncIndicator />
+      </div>
+
       {/* Main Content Area */}
-      <main className="flex-1 overflow-y-auto pb-24 safe-area-pt">
+      <main className="flex-1 overflow-y-auto pb-24">
         <Outlet />
       </main>
 
@@ -70,7 +106,6 @@ export function Layout() {
         <div className="flex justify-around items-center h-16 max-w-md mx-auto px-4 relative">
           {navItems.map((item, index) => {
             const Icon = item.icon;
-            // Insert spacing for the center button
             const isRightSide = index >= navItems.length / 2;
             
             return (
@@ -81,7 +116,7 @@ export function Layout() {
                   cn(
                     "flex flex-col items-center justify-center w-16 h-full transition-colors",
                     isActive ? "text-primary" : "text-foreground/50 hover:text-foreground/80",
-                    isRightSide && index === 1 ? "ml-8" : "", // Push right items a bit
+                    isRightSide && index === 1 ? "ml-8" : "",
                     isRightSide && index === 2 ? "ml-4" : "" 
                   )
                 }

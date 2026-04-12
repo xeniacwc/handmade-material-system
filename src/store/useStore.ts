@@ -2,6 +2,18 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import type { StateStorage } from 'zustand/middleware';
 import localforage from 'localforage';
+import {
+  fetchAllData,
+  dbAddTag,
+  dbAddType,
+  dbAddSource,
+  dbAddMaterial,
+  dbUpdateMaterial,
+  dbAddBatch,
+  dbAddRecipe,
+  dbAddProduct,
+  dbSaveProductRecord,
+} from '../lib/db';
 
 export interface MaterialTag { id: string; name: string; }
 export interface MaterialType { id: string; name: string; defaultUnit: string; }
@@ -34,6 +46,8 @@ export interface Product { id: string; name: string; image: string | null; recip
 export interface ConsumedBatch { batchId: string; materialId: string; quantity: number; unitCost: number; }
 export interface ProductRecord { id: string; productId: string; totalCost: number; consumedBatches: ConsumedBatch[]; createdAt: number; }
 
+type SyncStatus = 'idle' | 'loading' | 'syncing' | 'error';
+
 interface AppState {
   tags: MaterialTag[];
   types: MaterialType[];
@@ -43,8 +57,13 @@ interface AppState {
   recipes: Recipe[];
   products: Product[];
   productRecords: ProductRecord[];
-  
+
+  // Sync state
+  syncStatus: SyncStatus;
+  syncError: string | null;
+
   // Actions
+  loadFromSupabase: () => Promise<void>;
   addTag: (t: MaterialTag) => void;
   addType: (t: MaterialType) => void;
   addSource: (s: PurchaseSource) => void;
@@ -53,7 +72,7 @@ interface AppState {
   addBatch: (b: MaterialBatch) => void;
   addRecipe: (r: Recipe) => void;
   addProduct: (p: Product) => void;
-  
+
   // Advanced Action
   createProductRecord: (productId: string, recipeId: string) => void;
 }
@@ -82,18 +101,69 @@ export const useStore = create<AppState>()(
       recipes: [],
       products: [],
       productRecords: [],
-      
-      addTag: (t) => set((s) => ({ tags: [...s.tags, t] })),
-      addType: (t) => set((s) => ({ types: [...s.types, t] })),
-      addSource: (s_obj) => set((s) => ({ sources: [...s.sources, s_obj] })),
-      addMaterial: (m) => set((s) => ({ materials: [m, ...s.materials] })),
-      updateMaterial: (id, updated) => set((s) => ({
-        materials: s.materials.map(m => m.id === id ? { ...m, ...updated } : m)
-      })),
-      addBatch: (b) => set((s) => ({ batches: [b, ...s.batches] })),
-      addRecipe: (r) => set((s) => ({ recipes: [r, ...s.recipes] })),
-      addProduct: (p) => set((s) => ({ products: [p, ...s.products] })),
-      
+      syncStatus: 'idle',
+      syncError: null,
+
+      // ── Load all data from Supabase on startup ──
+      loadFromSupabase: async () => {
+        set({ syncStatus: 'loading', syncError: null });
+        try {
+          const data = await fetchAllData();
+          // Merge types: keep defaults if Supabase returns empty
+          const types = data.types.length > 0 ? data.types : defaultTypes;
+          set({
+            ...data,
+            types,
+            syncStatus: 'idle',
+          });
+        } catch (err) {
+          console.error('[Supabase] loadFromSupabase error:', err);
+          set({ syncStatus: 'error', syncError: String(err) });
+        }
+      },
+
+      addTag: (t) => {
+        set((s) => ({ tags: [...s.tags, t] }));
+        dbAddTag(t).catch((e) => console.error('[Supabase] addTag:', e));
+      },
+
+      addType: (t) => {
+        set((s) => ({ types: [...s.types, t] }));
+        dbAddType(t).catch((e) => console.error('[Supabase] addType:', e));
+      },
+
+      addSource: (s_obj) => {
+        set((s) => ({ sources: [...s.sources, s_obj] }));
+        dbAddSource(s_obj).catch((e) => console.error('[Supabase] addSource:', e));
+      },
+
+      addMaterial: (m) => {
+        set((s) => ({ materials: [m, ...s.materials] }));
+        dbAddMaterial(m).catch((e) => console.error('[Supabase] addMaterial:', e));
+      },
+
+      updateMaterial: (id, updated) => {
+        set((s) => ({
+          materials: s.materials.map(m => m.id === id ? { ...m, ...updated } : m)
+        }));
+        dbUpdateMaterial(id, updated).catch((e) => console.error('[Supabase] updateMaterial:', e));
+      },
+
+      addBatch: (b) => {
+        set((s) => ({ batches: [b, ...s.batches] }));
+        dbAddBatch(b).catch((e) => console.error('[Supabase] addBatch:', e));
+      },
+
+      addRecipe: (r) => {
+        set((s) => ({ recipes: [r, ...s.recipes] }));
+        dbAddRecipe(r).catch((e) => console.error('[Supabase] addRecipe:', e));
+      },
+
+      addProduct: (p) => {
+        set((s) => ({ products: [p, ...s.products] }));
+        dbAddProduct(p).catch((e) => console.error('[Supabase] addProduct:', e));
+      },
+
       createProductRecord: (productId, recipeId) => {
         const state = get();
         const recipe = state.recipes.find(r => r.id === recipeId);
@@ -105,13 +175,12 @@ export const useStore = create<AppState>()(
 
         for (const item of recipe.items) {
           let qtyNeeded = item.quantity;
-          
+
           // Find batches for this material, sort by createdAt ASC (FIFO)
           const materialBatches = updatedBatches
             .filter(b => b.materialId === item.materialId)
             .sort((a, b) => a.createdAt - b.createdAt);
 
-          // Get the latest batch unitCost for fallback (Option B)
           const latestBatch = materialBatches[materialBatches.length - 1];
           const fallbackCost = latestBatch ? latestBatch.unitCost : 0;
 
@@ -126,9 +195,7 @@ export const useStore = create<AppState>()(
             }
           }
 
-          // Output warning/fallback to negative if not enough (Option B)
           if (qtyNeeded > 0) {
-            // we deduct from the latest batch into negatives if it exists, otherwise we just record the cost based on 0
             totalCost += qtyNeeded * fallbackCost;
             if (latestBatch) {
               latestBatch.remaining -= qtyNeeded;
@@ -151,10 +218,15 @@ export const useStore = create<AppState>()(
           batches: updatedBatches,
           productRecords: [record, ...state.productRecords]
         });
+
+        // Sync to Supabase async
+        dbSaveProductRecord(record, updatedBatches).catch((e) =>
+          console.error('[Supabase] createProductRecord:', e)
+        );
       }
     }),
     {
-      name: 'craft-manager-storage-v2', // Changed storage key to force reset MVP data and use v2 schema
+      name: 'craft-manager-storage-v2',
       storage: createJSONStorage(() => storage),
     }
   )
