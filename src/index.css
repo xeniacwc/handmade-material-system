@@ -1,0 +1,54 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* 莫蘭迪/奶油高級色系 */
+    --background: #faf8f5;
+    --foreground: #4a4440;
+    --primary: #bdaea3;
+    --primary-foreground: #ffffff;
+    --card: #ffffff;
+    --border: #edece8;
+    --input: #edece8;
+    --ring: #bdaea3;
+    --radius: 1rem;
+    
+    /* Secondary & destructive */
+    --secondary: #e6e2db;
+    --secondary-foreground: #4a4440;
+    --destructive: #d4a3a3;
+    --destructive-foreground: #ffffff;
+    --success: #a3bcae;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-[var(--background)] text-[var(--foreground)] font-sans antialiased;
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  /* 隱藏滾動條但保持滾動功能 (簡潔 UI) */
+  ::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Glassmorphism utils */
+.glass {
+  @apply bg-white/70 backdrop-blur-md border border-white/40 shadow-sm;
+}
+.glass-card {
+  @apply bg-white/80 backdrop-blur-lg border border-white/50 shadow-sm rounded-2xl;
+}
+.safe-area-pt {
+  padding-top: env(safe-area-inset-top);
+}
+.safe-area-pb {
+  padding-bottom: env(safe-area-inset-bottom);
+}
