@@ -11,6 +11,7 @@ import { RecipeList } from './pages/Recipes/RecipeList';
 import { RecipeForm } from './pages/Recipes/RecipeForm';
 import { ProductList } from './pages/Products/ProductList';
 import { ProductForm } from './pages/Products/ProductForm';
+import { SettingsList } from './pages/Settings/SettingsList';
 
 function App() {
   const loadFromSupabase = useStore((s) => s.loadFromSupabase);
@@ -32,6 +33,7 @@ function App() {
           <Route path="materials/:id/edit" element={<MaterialForm />} />
           <Route path="recipes" element={<RecipeList />} />
           <Route path="recipes/new" element={<RecipeForm />} />
+          <Route path="settings" element={<SettingsList />} />
         </Route>
       </Routes>
     </BrowserRouter>

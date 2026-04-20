@@ -14,11 +14,18 @@ import {
   dbAddRecipe,
   dbAddProduct,
   dbSaveProductRecord,
+  dbAddNamingOption,
+  dbDeleteNamingOption,
 } from '../lib/db';
 
 export interface MaterialTag { id: string; name: string; }
 export interface MaterialType { id: string; name: string; defaultUnit: string; }
 export interface PurchaseSource { id: string; name: string; }
+export interface NamingOption {
+  id: string;
+  category: 'material' | 'shape' | 'color';
+  value: string;
+}
 
 export interface MaterialBatch {
   id: string;
@@ -58,6 +65,7 @@ interface AppState {
   recipes: Recipe[];
   products: Product[];
   productRecords: ProductRecord[];
+  namingOptions: NamingOption[];
 
   // Sync state
   syncStatus: SyncStatus;
@@ -74,6 +82,8 @@ interface AppState {
   addBatch: (b: MaterialBatch) => void;
   addRecipe: (r: Recipe) => void;
   addProduct: (p: Product) => void;
+  addNamingOption: (n: NamingOption) => void;
+  deleteNamingOption: (id: string) => void;
 
   // Advanced Action
   createProductRecord: (productId: string, recipeId: string) => void;
@@ -103,6 +113,7 @@ export const useStore = create<AppState>()(
       recipes: [],
       products: [],
       productRecords: [],
+      namingOptions: [],
       syncStatus: 'idle',
       syncError: null,
 
@@ -169,6 +180,16 @@ export const useStore = create<AppState>()(
       addProduct: (p) => {
         set((s) => ({ products: [p, ...s.products] }));
         dbAddProduct(p).catch((e) => console.error('[Supabase] addProduct:', e));
+      },
+
+      addNamingOption: (n) => {
+        set((s) => ({ namingOptions: [...s.namingOptions, n] }));
+        dbAddNamingOption(n).catch((e) => console.error('[Supabase] addNamingOption:', e));
+      },
+
+      deleteNamingOption: (id) => {
+        set((s) => ({ namingOptions: s.namingOptions.filter(no => no.id !== id) }));
+        dbDeleteNamingOption(id).catch((e) => console.error('[Supabase] deleteNamingOption:', e));
       },
 
       createProductRecord: (productId, recipeId) => {

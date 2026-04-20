@@ -10,6 +10,7 @@ import type {
   Product,
   ProductRecord,
   ConsumedBatch,
+  NamingOption,
 } from '../store/useStore';
 
 // ──────────────────────────────────────────
@@ -24,6 +25,7 @@ export interface AllData {
   recipes: Recipe[];
   products: Product[];
   productRecords: ProductRecord[];
+  namingOptions: NamingOption[];
 }
 
 export async function fetchAllData(): Promise<AllData> {
@@ -38,6 +40,7 @@ export async function fetchAllData(): Promise<AllData> {
     { data: productsRaw },
     { data: productRecordsRaw },
     { data: consumedBatchesRaw },
+    { data: namingOptionsRaw },
   ] = await Promise.all([
     supabase.from('material_tags').select('*'),
     supabase.from('material_types').select('*'),
@@ -49,6 +52,7 @@ export async function fetchAllData(): Promise<AllData> {
     supabase.from('products').select('*').order('created_at', { ascending: false }),
     supabase.from('product_records').select('*').order('created_at', { ascending: false }),
     supabase.from('consumed_batches').select('*'),
+    supabase.from('naming_options').select('*'),
   ]);
 
   // Rebuild recipes with items
@@ -109,12 +113,25 @@ export async function fetchAllData(): Promise<AllData> {
       createdAt: p.created_at,
     })),
     productRecords,
+    namingOptions: (namingOptionsRaw || []).map((no) => ({
+      id: no.id,
+      category: no.category,
+      value: no.value,
+    })),
   };
 }
 
 // ──────────────────────────────────────────
-// INSERT helpers
+// INSERT & DELETE helpers
 // ──────────────────────────────────────────
+export async function dbAddNamingOption(no: NamingOption) {
+  await supabase.from('naming_options').insert({ id: no.id, category: no.category, value: no.value });
+}
+
+export async function dbDeleteNamingOption(id: string) {
+  await supabase.from('naming_options').delete().eq('id', id);
+}
+
 export async function dbAddTag(t: MaterialTag) {
   await supabase.from('material_tags').insert({ id: t.id, name: t.name });
 }

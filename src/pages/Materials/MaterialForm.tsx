@@ -10,12 +10,15 @@ export function MaterialForm() {
   const { id } = useParams<{ id: string }>();
   const isEditMode = Boolean(id);
   
-  const { types, tags, sources, addTag, addSource, addMaterial, updateMaterial, addBatch, materials } = useStore();
+  const { types, tags, sources, addTag, addSource, addMaterial, updateMaterial, addBatch, materials, namingOptions } = useStore();
 
   const existingMaterial = isEditMode ? materials.find(m => m.id === id) : null;
 
   const [image, setImage] = useState<string | null>(null);
-  const [name, setName] = useState('');
+  const [optMaterial, setOptMaterial] = useState('');
+  const [optShape, setOptShape] = useState('');
+  const [optColor, setOptColor] = useState('');
+  const [customName, setCustomName] = useState('');
   const [typeId, setTypeId] = useState(types[0]?.id || '');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [newTagInput, setNewTagInput] = useState('');
@@ -29,11 +32,18 @@ export function MaterialForm() {
   useEffect(() => {
     if (isEditMode && existingMaterial) {
       setImage(existingMaterial.image);
-      setName(existingMaterial.name === '待補' ? '' : existingMaterial.name);
+      setCustomName(existingMaterial.name === '待補' ? '' : existingMaterial.name);
       setTypeId(existingMaterial.typeId);
       setSelectedTags(existingMaterial.tagIds);
     }
   }, [isEditMode, existingMaterial]);
+
+  const materialsOpts = namingOptions.filter(o => o.category === 'material');
+  const shapesOpts = namingOptions.filter(o => o.category === 'shape');
+  const colorsOpts = namingOptions.filter(o => o.category === 'color');
+  
+  const computedPrefix = [optMaterial, optShape, optColor].filter(Boolean).join('');
+  const finalName = computedPrefix ? `${computedPrefix} ${customName}`.trim() : customName.trim();
 
   const handlePriceChange = (field: 'total' | 'qty' | 'unit', val: string) => {
     const num = parseFloat(val);
@@ -84,14 +94,14 @@ export function MaterialForm() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || (!typeId && types.length === 0)) return;
+    if (!finalName || (!typeId && types.length === 0)) return;
 
     if (isEditMode && id) {
-      updateMaterial(id, { name, image, typeId, tagIds: selectedTags });
+      updateMaterial(id, { name: finalName, image, typeId, tagIds: selectedTags });
     } else {
       const matId = crypto.randomUUID();
       addMaterial({
-        id: matId, name, image, typeId, tagIds: selectedTags, createdAt: Date.now()
+        id: matId, name: finalName, image, typeId, tagIds: selectedTags, createdAt: Date.now()
       });
 
       // Add the first batch if quantity is given
@@ -139,9 +149,42 @@ export function MaterialForm() {
         <ImageUploader value={image} onChange={setImage} />
 
         <div className="flex flex-col gap-4">
-          <div>
-            <label className="block text-sm font-medium text-foreground/70 mb-1">材料名稱 *</label>
-            <input type="text" required value={name} onChange={e => setName(e.target.value)} className="w-full p-3 rounded-xl border bg-white focus:border-primary focus:ring-1" />
+          <div className="bg-gray-50/50 p-4 rounded-2xl border border-gray-100 flex flex-col gap-3">
+            <label className="block text-sm font-bold text-foreground/80">名稱組合器</label>
+            
+            <div className="grid grid-cols-3 gap-2">
+              <select value={optMaterial} onChange={e => setOptMaterial(e.target.value)} className="w-full p-2.5 rounded-xl border bg-white focus:border-primary focus:ring-1 text-sm">
+                <option value="">選擇材質...</option>
+                {materialsOpts.map(o => <option key={o.id} value={o.value}>{o.value}</option>)}
+              </select>
+              <select value={optShape} onChange={e => setOptShape(e.target.value)} className="w-full p-2.5 rounded-xl border bg-white focus:border-primary focus:ring-1 text-sm">
+                <option value="">選擇形狀...</option>
+                {shapesOpts.map(o => <option key={o.id} value={o.value}>{o.value}</option>)}
+              </select>
+              <select value={optColor} onChange={e => setOptColor(e.target.value)} className="w-full p-2.5 rounded-xl border bg-white focus:border-primary focus:ring-1 text-sm">
+                <option value="">選擇顏色...</option>
+                {colorsOpts.map(o => <option key={o.id} value={o.value}>{o.value}</option>)}
+              </select>
+            </div>
+
+            <div>
+               <label className="block text-xs font-medium text-foreground/50 mb-1">自訂名稱或附加後綴 *</label>
+               <input 
+                 type="text" 
+                 required={!computedPrefix} 
+                 value={customName} 
+                 onChange={e => setCustomName(e.target.value)} 
+                 className="w-full p-3 rounded-xl border bg-white focus:border-primary focus:ring-1" 
+                 placeholder={computedPrefix ? "選填描述..." : "輸入材料名稱..."}
+               />
+            </div>
+            
+            {(computedPrefix || customName) && (
+              <div className="bg-primary/5 p-3 rounded-xl border border-primary/20 text-center">
+                <span className="text-xs text-primary font-medium block mb-1">最終名稱預覽</span>
+                <span className="font-bold text-foreground text-lg">{finalName}</span>
+              </div>
+            )}
           </div>
 
           <div>
@@ -251,7 +294,7 @@ export function MaterialForm() {
           </div>
         )}
 
-        <button type="submit" disabled={!name} className="mt-4 mb-8 bg-primary text-primary-foreground py-4 rounded-xl font-bold tracking-wider hover:opacity-90 active:scale-[0.98] transition-transform disabled:opacity-50 shadow-md">
+        <button type="submit" disabled={!finalName} className="mt-4 mb-8 bg-primary text-primary-foreground py-4 rounded-xl font-bold tracking-wider hover:opacity-90 active:scale-[0.98] transition-transform disabled:opacity-50 shadow-md">
           {isEditMode ? '儲存變更' : '建立材料'}
         </button>
       </form>

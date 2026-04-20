@@ -1,6 +1,6 @@
 import React from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { Package, ScrollText, Scissors, Plus, WifiOff, Loader2 } from 'lucide-react';
+import { Package, ScrollText, Scissors, Plus, WifiOff, Loader2, Settings as SettingsIcon } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { useStore } from '../store/useStore';
@@ -53,6 +53,7 @@ export function Layout() {
     { to: '/', icon: Package, label: '作品' },
     { to: '/recipes', icon: ScrollText, label: '配方' },
     { to: '/materials', icon: Scissors, label: '材料' },
+    { to: '/settings', icon: SettingsIcon, label: '設定' },
   ];
 
   const handleAdd = (path: string) => {
