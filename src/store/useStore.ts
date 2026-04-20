@@ -8,6 +8,7 @@ import {
   dbAddType,
   dbAddSource,
   dbAddMaterial,
+  dbAddMaterials,
   dbUpdateMaterial,
   dbAddBatch,
   dbAddRecipe,
@@ -68,6 +69,7 @@ interface AppState {
   addType: (t: MaterialType) => void;
   addSource: (s: PurchaseSource) => void;
   addMaterial: (m: Material) => void;
+  addMaterials: (m: Material[]) => void;
   updateMaterial: (id: string, m: Partial<Material>) => void;
   addBatch: (b: MaterialBatch) => void;
   addRecipe: (r: Recipe) => void;
@@ -140,6 +142,11 @@ export const useStore = create<AppState>()(
       addMaterial: (m) => {
         set((s) => ({ materials: [m, ...s.materials] }));
         dbAddMaterial(m).catch((e) => console.error('[Supabase] addMaterial:', e));
+      },
+
+      addMaterials: (batchMaterials) => {
+        set((s) => ({ materials: [...batchMaterials, ...s.materials] }));
+        dbAddMaterials(batchMaterials).catch((e) => console.error('[Supabase] addMaterials:', e));
       },
 
       updateMaterial: (id, updated) => {

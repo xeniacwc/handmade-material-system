@@ -147,6 +147,20 @@ export async function dbUpdateMaterial(id: string, updated: Partial<Material>) {
   await supabase.from('materials').update(patch).eq('id', id);
 }
 
+export async function dbAddMaterials(materials: Material[]) {
+  if (materials.length === 0) return;
+  const payload = materials.map((m) => ({
+    id: m.id,
+    name: m.name,
+    image: m.image,
+    type_id: m.typeId,
+    tag_ids: m.tagIds,
+    created_at: m.createdAt,
+  }));
+  const { error } = await supabase.from('materials').insert(payload);
+  if (error) console.error('insert batch materials error', error);
+}
+
 export async function dbAddBatch(b: MaterialBatch) {
   await supabase.from('material_batches').insert({
     id: b.id,

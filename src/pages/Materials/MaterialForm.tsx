@@ -29,7 +29,7 @@ export function MaterialForm() {
   useEffect(() => {
     if (isEditMode && existingMaterial) {
       setImage(existingMaterial.image);
-      setName(existingMaterial.name);
+      setName(existingMaterial.name === '待補' ? '' : existingMaterial.name);
       setTypeId(existingMaterial.typeId);
       setSelectedTags(existingMaterial.tagIds);
     }
