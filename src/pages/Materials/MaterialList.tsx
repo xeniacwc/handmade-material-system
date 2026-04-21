@@ -205,13 +205,16 @@ export function MaterialList() {
           </div>
           {activeTab === 'bead' && (
             <>
+              {renderFilterChips('材質', 'bead_material')}
+              {renderFilterChips('形狀', 'bead_shape')}
+              {renderFilterChips('顏色', 'bead_color')}
               {renderFilterChips('表面處理', 'bead_surface')}
               {renderFilterChips('尺寸', 'bead_size')}
             </>
           )}
           {activeTab === 'wire' && (
             <>
-              {renderFilterChips('材質', 'wire_material')}
+              {renderFilterChips('材料', 'wire_material')}
               {renderFilterChips('直徑', 'wire_diameter')}
             </>
           )}
