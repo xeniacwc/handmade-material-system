@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ChevronLeft, Edit2, Plus, Box, Calendar, DollarSign, Store, Filter } from 'lucide-react';
+import { ChevronLeft, Edit2, Plus, Box, Calendar, DollarSign, Store, Filter, ShoppingCart } from 'lucide-react';
 import { useStore } from '../../store/useStore';
 
 
 export function MaterialDetail() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const { materials, batches, types, tags, sources, addBatch, addSource } = useStore();
+  const { materials, batches, types, tags, sources, addBatch, addSource, addShoppingItem } = useStore();
 
   const material = materials.find(m => m.id === id);
   const materialBatches = batches.filter(b => b.materialId === id).sort((a,b) => b.createdAt - a.createdAt);
@@ -131,9 +131,20 @@ export function MaterialDetail() {
         <div className="p-4 mt-2">
           <div className="flex justify-between items-center mb-4">
              <h3 className="font-bold text-lg text-foreground">購入紀錄</h3>
-             <button onClick={() => setShowBatchForm(true)} className="flex items-center gap-1 bg-primary/10 text-primary px-3 py-1.5 rounded-lg text-sm font-bold active:scale-95 transition-transform">
-               <Plus size={16}/> 新增購入
-             </button>
+             <div className="flex gap-2">
+               <button 
+                 onClick={() => {
+                   addShoppingItem({ id: crypto.randomUUID(), materialId: material.id, sourceId: null, quantity: 1, unitCost: 0, createdAt: Date.now() });
+                   alert('已加入購物清單！');
+                 }} 
+                 className="flex items-center gap-1 bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg text-sm font-bold active:scale-95 transition-transform"
+               >
+                 <ShoppingCart size={16}/> 入清單
+               </button>
+               <button onClick={() => setShowBatchForm(true)} className="flex items-center gap-1 bg-primary/10 text-primary px-3 py-1.5 rounded-lg text-sm font-bold active:scale-95 transition-transform">
+                 <Plus size={16}/> 新增購入
+               </button>
+             </div>
           </div>
 
           {/* Filtering */}

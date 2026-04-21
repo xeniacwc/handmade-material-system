@@ -16,6 +16,9 @@ import {
   dbSaveProductRecord,
   dbAddNamingOption,
   dbDeleteNamingOption,
+  dbAddShoppingItem,
+  dbUpdateShoppingItem,
+  dbDeleteShoppingItem,
 } from '../lib/db';
 
 export interface MaterialTag { id: string; name: string; }
@@ -23,8 +26,17 @@ export interface MaterialType { id: string; name: string; defaultUnit: string; }
 export interface PurchaseSource { id: string; name: string; }
 export interface NamingOption {
   id: string;
-  category: 'material' | 'shape' | 'color';
+  category: string;
   value: string;
+}
+
+export interface ShoppingItem {
+  id: string;
+  materialId: string;
+  sourceId: string | null;
+  quantity: number;
+  unitCost: number;
+  createdAt: number;
 }
 
 export interface MaterialBatch {
@@ -44,6 +56,9 @@ export interface Material {
   image: string | null;
   typeId: string;
   tagIds: string[];
+  majorCategory: 'wire' | 'bead' | 'hardware';
+  attributes: Record<string, any>;
+  notes: string;
   createdAt: number;
 }
 
@@ -66,6 +81,7 @@ interface AppState {
   products: Product[];
   productRecords: ProductRecord[];
   namingOptions: NamingOption[];
+  shoppingItems: ShoppingItem[];
 
   // Sync state
   syncStatus: SyncStatus;
@@ -84,6 +100,12 @@ interface AppState {
   addProduct: (p: Product) => void;
   addNamingOption: (n: NamingOption) => void;
   deleteNamingOption: (id: string) => void;
+
+  // Shopping List
+  addShoppingItem: (s: ShoppingItem) => void;
+  updateShoppingItem: (id: string, s: Partial<ShoppingItem>) => void;
+  removeShoppingItem: (id: string) => void;
+  checkoutShoppingItems: (itemsToCheckout: ShoppingItem[]) => void;
 
   // Advanced Action
   createProductRecord: (productId: string, recipeId: string) => void;
@@ -114,6 +136,7 @@ export const useStore = create<AppState>()(
       products: [],
       productRecords: [],
       namingOptions: [],
+      shoppingItems: [],
       syncStatus: 'idle',
       syncError: null,
 
@@ -190,6 +213,48 @@ export const useStore = create<AppState>()(
       deleteNamingOption: (id) => {
         set((s) => ({ namingOptions: s.namingOptions.filter(no => no.id !== id) }));
         dbDeleteNamingOption(id).catch((e) => console.error('[Supabase] deleteNamingOption:', e));
+      },
+
+      addShoppingItem: (si) => {
+        set((s) => ({ shoppingItems: [si, ...s.shoppingItems] }));
+        dbAddShoppingItem(si).catch((e) => console.error('[Supabase] addShoppingItem:', e));
+      },
+
+      updateShoppingItem: (id, partial) => {
+        set((s) => ({
+          shoppingItems: s.shoppingItems.map(item => item.id === id ? { ...item, ...partial } : item)
+        }));
+        dbUpdateShoppingItem(id, partial).catch((e) => console.error('[Supabase] updateShoppingItem:', e));
+      },
+
+      removeShoppingItem: (id) => {
+        set((s) => ({ shoppingItems: s.shoppingItems.filter(i => i.id !== id) }));
+        dbDeleteShoppingItem(id).catch((e) => console.error('[Supabase] deleteShoppingItem:', e));
+      },
+
+      checkoutShoppingItems: (itemsToCheckout) => {
+        const now = Date.now();
+        const ids = itemsToCheckout.map(i => i.id);
+        
+        // Remove from shoppingItems state immediately
+        set((s) => ({ shoppingItems: s.shoppingItems.filter(i => !ids.includes(i.id)) }));
+        
+        // Convert to batches and add to local state
+        const newBatches: MaterialBatch[] = itemsToCheckout.map((item, idx) => ({
+          id: crypto.randomUUID(),
+          materialId: item.materialId,
+          sourceId: item.sourceId,
+          totalPrice: item.unitCost * item.quantity,
+          quantity: item.quantity,
+          remaining: item.quantity,
+          unitCost: item.unitCost,
+          createdAt: now + idx,
+        }));
+        set((s) => ({ batches: [...newBatches, ...s.batches] }));
+        
+        // Make DB calls
+        ids.forEach(id => dbDeleteShoppingItem(id).catch(e => console.error('Delete SI error:', e)));
+        newBatches.forEach(b => dbAddBatch(b).catch(e => console.error('Add batch error:', e)));
       },
 
       createProductRecord: (productId, recipeId) => {

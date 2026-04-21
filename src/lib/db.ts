@@ -11,6 +11,7 @@ import type {
   ProductRecord,
   ConsumedBatch,
   NamingOption,
+  ShoppingItem,
 } from '../store/useStore';
 
 // ──────────────────────────────────────────
@@ -26,6 +27,7 @@ export interface AllData {
   products: Product[];
   productRecords: ProductRecord[];
   namingOptions: NamingOption[];
+  shoppingItems: ShoppingItem[];
 }
 
 export async function fetchAllData(): Promise<AllData> {
@@ -41,6 +43,7 @@ export async function fetchAllData(): Promise<AllData> {
     { data: productRecordsRaw },
     { data: consumedBatchesRaw },
     { data: namingOptionsRaw },
+    { data: shoppingItemsRaw },
   ] = await Promise.all([
     supabase.from('material_tags').select('*'),
     supabase.from('material_types').select('*'),
@@ -53,6 +56,7 @@ export async function fetchAllData(): Promise<AllData> {
     supabase.from('product_records').select('*').order('created_at', { ascending: false }),
     supabase.from('consumed_batches').select('*'),
     supabase.from('naming_options').select('*'),
+    supabase.from('shopping_items').select('*').order('created_at', { ascending: false }),
   ]);
 
   // Rebuild recipes with items
@@ -92,6 +96,9 @@ export async function fetchAllData(): Promise<AllData> {
       image: m.image,
       typeId: m.type_id,
       tagIds: m.tag_ids || [],
+      majorCategory: m.major_category || 'bead',
+      attributes: m.attributes || {},
+      notes: m.notes || '',
       createdAt: m.created_at,
     })),
     batches: (batchesRaw || []).map((b) => ({
@@ -117,6 +124,14 @@ export async function fetchAllData(): Promise<AllData> {
       id: no.id,
       category: no.category,
       value: no.value,
+    })),
+    shoppingItems: (shoppingItemsRaw || []).map((s) => ({
+      id: s.id,
+      materialId: s.material_id,
+      sourceId: s.source_id,
+      quantity: s.quantity,
+      unitCost: s.unit_cost,
+      createdAt: s.created_at,
     })),
   };
 }
@@ -151,6 +166,9 @@ export async function dbAddMaterial(m: Material) {
     image: m.image,
     type_id: m.typeId,
     tag_ids: m.tagIds,
+    major_category: m.majorCategory,
+    attributes: m.attributes,
+    notes: m.notes,
     created_at: m.createdAt,
   });
 }
@@ -161,6 +179,9 @@ export async function dbUpdateMaterial(id: string, updated: Partial<Material>) {
   if (updated.image !== undefined) patch.image = updated.image;
   if (updated.typeId !== undefined) patch.type_id = updated.typeId;
   if (updated.tagIds !== undefined) patch.tag_ids = updated.tagIds;
+  if (updated.majorCategory !== undefined) patch.major_category = updated.majorCategory;
+  if (updated.attributes !== undefined) patch.attributes = updated.attributes;
+  if (updated.notes !== undefined) patch.notes = updated.notes;
   await supabase.from('materials').update(patch).eq('id', id);
 }
 
@@ -172,6 +193,9 @@ export async function dbAddMaterials(materials: Material[]) {
     image: m.image,
     type_id: m.typeId,
     tag_ids: m.tagIds,
+    major_category: m.majorCategory,
+    attributes: m.attributes,
+    notes: m.notes,
     created_at: m.createdAt,
   }));
   const { error } = await supabase.from('materials').insert(payload);
@@ -225,7 +249,6 @@ export async function dbSaveProductRecord(
   record: ProductRecord,
   updatedBatches: MaterialBatch[]
 ) {
-  // Insert the production record
   await supabase.from('product_records').insert({
     id: record.id,
     product_id: record.productId,
@@ -233,12 +256,11 @@ export async function dbSaveProductRecord(
     created_at: record.createdAt,
   });
 
-  // Insert consumed batches detail
   if (record.consumedBatches.length > 0) {
     await supabase.from('consumed_batches').insert(
       record.consumedBatches.map((cb: ConsumedBatch) => ({
         record_id: record.id,
-        batch_id: cb.batchId,
+        batch_id: cb.batchId === 'fallback' ? crypto.randomUUID() : cb.batchId,
         material_id: cb.materialId,
         quantity: cb.quantity,
         unit_cost: cb.unitCost,
@@ -246,7 +268,6 @@ export async function dbSaveProductRecord(
     );
   }
 
-  // Update batch remaining values in Supabase
   const affectedBatchIds = new Set(record.consumedBatches.map((cb) => cb.batchId));
   for (const batchId of affectedBatchIds) {
     if (batchId === 'fallback') continue;
@@ -258,4 +279,28 @@ export async function dbSaveProductRecord(
         .eq('id', batchId);
     }
   }
+}
+
+export async function dbAddShoppingItem(si: ShoppingItem) {
+  await supabase.from('shopping_items').insert({
+    id: si.id,
+    material_id: si.materialId,
+    source_id: si.sourceId,
+    quantity: si.quantity,
+    unit_cost: si.unitCost,
+    created_at: si.createdAt
+  });
+}
+
+export async function dbUpdateShoppingItem(id: string, partial: Partial<ShoppingItem>) {
+  const patch: Record<string, unknown> = {};
+  if (partial.materialId !== undefined) patch.material_id = partial.materialId;
+  if (partial.sourceId !== undefined) patch.source_id = partial.sourceId;
+  if (partial.quantity !== undefined) patch.quantity = partial.quantity;
+  if (partial.unitCost !== undefined) patch.unitCost = partial.unitCost;
+  await supabase.from('shopping_items').update(patch).eq('id', id);
+}
+
+export async function dbDeleteShoppingItem(id: string) {
+  await supabase.from('shopping_items').delete().eq('id', id);
 }

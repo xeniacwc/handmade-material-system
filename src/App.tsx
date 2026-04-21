@@ -7,6 +7,7 @@ import { useStore } from './store/useStore';
 import { MaterialList } from './pages/Materials/MaterialList';
 import { MaterialForm } from './pages/Materials/MaterialForm';
 import { MaterialDetail } from './pages/Materials/MaterialDetail';
+import { ShoppingList } from './pages/Materials/ShoppingList';
 import { RecipeList } from './pages/Recipes/RecipeList';
 import { RecipeForm } from './pages/Recipes/RecipeForm';
 import { ProductList } from './pages/Products/ProductList';
@@ -28,6 +29,7 @@ function App() {
           <Route index element={<ProductList />} />
           <Route path="products/new" element={<ProductForm />} />
           <Route path="materials" element={<MaterialList />} />
+          <Route path="shopping-list" element={<ShoppingList />} />
           <Route path="materials/new" element={<MaterialForm />} />
           <Route path="materials/:id" element={<MaterialDetail />} />
           <Route path="materials/:id/edit" element={<MaterialForm />} />
