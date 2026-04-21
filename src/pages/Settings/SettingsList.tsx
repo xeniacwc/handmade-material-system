@@ -14,6 +14,11 @@ export function SettingsList() {
       if (!inputValue.trim()) return;
       const finalVal = suffix ? `${inputValue.trim()}${suffix}` : inputValue.trim();
 
+      if (options.some(opt => opt.value === finalVal)) {
+        alert('此選項已存在！');
+        return;
+      }
+
       addNamingOption({
         id: crypto.randomUUID(),
         category,
@@ -75,7 +80,7 @@ export function SettingsList() {
 
     return (
       <div className="bg-white p-4 rounded-xl shadow-sm border mb-3">
-        <h3 className="font-bold text-sm text-foreground/80 mb-3 block">五、購買來源管理</h3>
+        <h3 className="font-bold text-sm text-foreground/80 mb-3 block">四、購買來源管理</h3>
         <div className="flex flex-wrap gap-2 mb-3">
           {sources.length === 0 && <span className="text-xs text-gray-400">尚無選項</span>}
           {sources.map((src) => (
@@ -114,28 +119,24 @@ export function SettingsList() {
       <div className="space-y-6">
         <section>
           <h2 className="text-sm font-black text-primary mb-2 flex items-center gap-2 px-1"><Tag size={16}/> 一、串珠專用屬性</h2>
+          {renderSection('材質', 'bead_material')}
+          {renderSection('形狀', 'bead_shape')}
+          {renderSection('顏色', 'bead_color')}
           {renderSection('表面與處理 (可複選)', 'bead_surface')}
-          {renderSection('珠子尺寸', 'bead_size', 'mm')}
+          {renderSection('尺寸', 'bead_size', 'mm')}
         </section>
 
         <section>
           <h2 className="text-sm font-black text-primary mb-2 flex items-center gap-2 px-1"><Tag size={16}/> 二、線材專用屬性</h2>
-          {renderSection('線材材質', 'wire_material')}
-          {renderSection('線材粗細直徑', 'wire_diameter', 'mm')}
+          {renderSection('材料', 'wire_material')}
+          {renderSection('直徑', 'wire_diameter', 'mm')}
         </section>
 
         <section>
           <h2 className="text-sm font-black text-primary mb-2 flex items-center gap-2 px-1"><Tag size={16}/> 三、五金專用屬性</h2>
-          {renderSection('五金材質', 'hardware_material')}
-          {renderSection('外觀顏色', 'hardware_color')}
-          {renderSection('五金尺寸', 'hardware_size', 'mm')}
-        </section>
-
-        <section>
-          <h2 className="text-sm font-black text-primary mb-2 flex items-center gap-2 px-1"><Tag size={16}/> 四、通用設定</h2>
-          {renderSection('通用材料材質名稱', 'material')}
-          {renderSection('通用形狀', 'shape')}
-          {renderSection('通用顏色', 'color')}
+          {renderSection('材質', 'hardware_material')}
+          {renderSection('顏色', 'hardware_color')}
+          {renderSection('尺寸', 'hardware_size', 'mm')}
         </section>
         
         {renderSources()}

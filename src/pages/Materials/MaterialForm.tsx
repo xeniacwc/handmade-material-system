@@ -57,7 +57,7 @@ export function MaterialForm() {
   };
 
   // Chips UI Component Generator
-  const renderChips = (title: string, categoryId: string, multi: boolean = false, suffix: string = '') => {
+  const renderChips = (title: string, categoryId: string, multi: boolean = false) => {
     const opts = namingOptions.filter(o => o.category === categoryId);
     if (opts.length === 0) return null;
 
@@ -82,7 +82,7 @@ export function MaterialForm() {
                     : "bg-white text-gray-600 border-gray-200 hover:border-primary/50"
                 )}
               >
-                {o.value}{suffix ? ` ${suffix}` : ''}
+                {o.value}
               </button>
             )
           })}
@@ -94,18 +94,21 @@ export function MaterialForm() {
   // Computed prefix Name
   let computedPrefix = '';
   if (majorCategory === 'bead') {
+    const mat = attributes['bead_material'];
+    const shape = attributes['bead_shape'];
+    const color = attributes['bead_color'];
     const arr = Array.isArray(attributes['bead_surface']) ? attributes['bead_surface'] : [];
     const size = attributes['bead_size'];
-    computedPrefix = [...arr, size ? `${size}mm` : ''].filter(Boolean).join('');
+    computedPrefix = [mat, shape, color, ...arr, size].filter(Boolean).join('');
   } else if (majorCategory === 'wire') {
     const mat = attributes['wire_material'];
     const diam = attributes['wire_diameter'];
-    computedPrefix = [mat, diam ? `${diam}mm` : ''].filter(Boolean).join('');
+    computedPrefix = [mat, diam].filter(Boolean).join('');
   } else if (majorCategory === 'hardware') {
     const mat = attributes['hardware_material'];
     const col = attributes['hardware_color'];
     const size = attributes['hardware_size'];
-    computedPrefix = [mat, col, size ? `${size}mm` : ''].filter(Boolean).join('');
+    computedPrefix = [mat, col, size].filter(Boolean).join('');
   }
 
   const finalName = computedPrefix ? `${computedPrefix} ${customName}`.trim() : customName.trim();
@@ -192,15 +195,18 @@ export function MaterialForm() {
             
             {majorCategory === 'bead' && (
               <>
+                {renderChips('材質', 'bead_material')}
+                {renderChips('形狀', 'bead_shape')}
+                {renderChips('顏色', 'bead_color')}
                 {renderChips('表面處理 (可多選)', 'bead_surface', true)}
-                {renderChips('尺寸', 'bead_size', false, 'mm')}
+                {renderChips('尺寸', 'bead_size')}
               </>
             )}
             
             {majorCategory === 'wire' && (
               <>
-                {renderChips('材質', 'wire_material')}
-                {renderChips('直徑', 'wire_diameter', false, 'mm')}
+                {renderChips('材料', 'wire_material')}
+                {renderChips('直徑', 'wire_diameter')}
               </>
             )}
 
@@ -208,7 +214,7 @@ export function MaterialForm() {
               <>
                 {renderChips('材質', 'hardware_material')}
                 {renderChips('顏色', 'hardware_color')}
-                {renderChips('尺寸', 'hardware_size', false, 'mm')}
+                {renderChips('尺寸', 'hardware_size')}
               </>
             )}
 
