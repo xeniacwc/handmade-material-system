@@ -12,7 +12,7 @@ function cn(...inputs: (string | undefined | null | false)[]) {
 
 export function MaterialList() {
   const navigate = useNavigate();
-  const { materials, batches, types, tags, addMaterials, namingOptions } = useStore();
+  const { materials, batches, types, addMaterials, namingOptions } = useStore();
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ChevronLeft, X } from 'lucide-react';
+import { ChevronLeft } from 'lucide-react';
 import { useStore } from '../../store/useStore';
 import { ImageUploader } from '../../components/ImageUploader';
 import { clsx } from 'clsx';
@@ -15,7 +15,7 @@ export function MaterialForm() {
   const { id } = useParams<{ id: string }>();
   const isEditMode = Boolean(id);
   
-  const { types, sources, addMaterial, updateMaterial, materials, namingOptions } = useStore();
+  const { types, addMaterial, updateMaterial, materials, namingOptions } = useStore();
 
   const existingMaterial = isEditMode ? materials.find(m => m.id === id) : null;
 
