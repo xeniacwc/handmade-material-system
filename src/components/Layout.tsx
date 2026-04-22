@@ -78,13 +78,6 @@ export function Layout() {
         <div className="fixed inset-0 z-40 bg-black/20 backdrop-blur-sm transition-opacity" onClick={() => setShowAddMenu(false)}>
           <div className="absolute bottom-24 left-1/2 -translate-x-1/2 flex flex-col items-center gap-4">
             <button
-              onClick={(e) => { e.stopPropagation(); handleAdd('/materials/new'); }}
-              className="flex items-center gap-2 bg-white px-6 py-3 rounded-full shadow-lg text-foreground font-medium w-40 justify-center transform active:scale-95 transition-transform"
-            >
-              <Scissors size={20} />
-              新增材料
-            </button>
-            <button
               onClick={(e) => { e.stopPropagation(); handleAdd('/recipes/new'); }}
               className="flex items-center gap-2 bg-white px-6 py-3 rounded-full shadow-lg text-foreground font-medium w-40 justify-center transform active:scale-95 transition-transform"
             >

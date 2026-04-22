@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/useStore';
 import type { ShoppingItem } from '../../store/useStore';
-import { ChevronLeft, Package, Trash2, CheckCircle, Calculator, Store } from 'lucide-react';
+import { ChevronLeft, Package, Trash2, CheckCircle, Calculator, Store, Plus } from 'lucide-react';
+import { BatchPriceInput } from '../../components/BatchPriceInput';
 
 export function ShoppingList() {
   const navigate = useNavigate();
@@ -47,15 +48,17 @@ export function ShoppingList() {
     <div className="flex flex-col h-screen bg-gray-50 pb-20">
       <header className="flex items-center justify-between p-4 bg-white/80 backdrop-blur-md sticky top-0 z-10 border-b">
         <button onClick={() => navigate('/materials')} className="p-2 -ml-2 text-foreground/70"><ChevronLeft size={24} /></button>
-        <h1 className="text-xl font-bold">預備購物清單</h1>
-        <div className="w-8"></div>
+        <h1 className="text-xl font-bold">進貨清單</h1>
+        <button onClick={() => navigate('/materials/new?redirect=restock')} className="p-2 -mr-2 text-primary">
+          <Plus size={24} />
+        </button>
       </header>
 
       <div className="flex-1 overflow-y-auto p-4 max-w-md mx-auto w-full">
         {shoppingItems.length === 0 ? (
           <div className="flex flex-col items-center justify-center text-gray-400 mt-20">
              <Package size={48} className="mb-4 stroke-[1.5]" />
-             <p className="text-sm">您的購物清單空空如也</p>
+             <p className="text-sm">您的進貨清單空空如也</p>
              <p className="text-xs mt-2">快到材料庫把即將用完的材料加進來吧！</p>
           </div>
         ) : (
@@ -108,27 +111,14 @@ export function ShoppingList() {
                                </button>
                             </div>
                             
-                            <div className="grid grid-cols-2 gap-2 mt-2">
-                              <div>
-                                <label className="text-[10px] text-gray-500 mb-0.5 block">預計購買數量</label>
-                                <input 
-                                  type="number" step="any" min="0" 
-                                  value={item.quantity || ''}
-                                  onChange={e => updateShoppingItem(item.id, { quantity: parseFloat(e.target.value) || 0 })}
-                                  className="w-full bg-gray-50 border rounded-md px-2 py-1 text-xs"
-                                  placeholder="0"
-                                />
-                              </div>
-                              <div>
-                                <label className="text-[10px] text-gray-500 mb-0.5 block">單價預估</label>
-                                <input 
-                                  type="number" step="any" min="0" 
-                                  value={item.unitCost || ''}
-                                  onChange={e => updateShoppingItem(item.id, { unitCost: parseFloat(e.target.value) || 0 })}
-                                  className="w-full bg-gray-50 border rounded-md px-2 py-1 text-xs"
-                                  placeholder="$0.00"
-                                />
-                              </div>
+                            <div className="mt-2">
+                              <BatchPriceInput
+                                compact
+                                initialQuantity={item.quantity}
+                                initialUnitCost={item.unitCost}
+                                initialTotalPrice={item.quantity > 0 && item.unitCost > 0 ? item.quantity * item.unitCost : undefined}
+                                onChange={(q, u) => updateShoppingItem(item.id, { quantity: q, unitCost: u })}
+                              />
                             </div>
                             
                             <div className="mt-2 text-[10px] text-gray-400 flex items-center justify-between">
@@ -142,9 +132,6 @@ export function ShoppingList() {
                                    {sources.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                                  </select>
                                </span>
-                               {item.quantity > 0 && item.unitCost > 0 && (
-                                 <span className="font-bold text-primary">小計: ${(item.quantity * item.unitCost).toFixed(2)}</span>
-                               )}
                             </div>
                           </div>
                         </div>

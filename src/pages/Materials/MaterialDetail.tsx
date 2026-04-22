@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ChevronLeft, Edit2, Plus, Box, Calendar, DollarSign, Store, Filter, ShoppingCart } from 'lucide-react';
 import { useStore } from '../../store/useStore';
+import { BatchPriceInput } from '../../components/BatchPriceInput';
 
 
 export function MaterialDetail() {
@@ -18,36 +19,19 @@ export function MaterialDetail() {
   
   // Batch Form State
   const [sourceInput, setSourceInput] = useState('');
-  const [totalPrice, setTotalPrice] = useState<string>('');
-  const [quantity, setQuantity] = useState<string>('');
-  const [unitCost, setUnitCost] = useState<string>('');
+  const [totalPrice, setTotalPrice] = useState(0);
+  const [quantity, setQuantity] = useState(0);
+  const [unitCost, setUnitCost] = useState(0);
 
   if (!material) {
     return <div className="p-8 text-center text-gray-500">找不到材料</div>;
   }
 
-  const handlePriceChange = (field: 'total' | 'qty' | 'unit', val: string) => {
-    const num = parseFloat(val);
-    if (field === 'total') {
-      setTotalPrice(val);
-      const q = parseFloat(quantity);
-      if (q > 0 && !isNaN(num)) setUnitCost((num / q).toFixed(2));
-    } else if (field === 'qty') {
-      setQuantity(val);
-      const t = parseFloat(totalPrice);
-      if (t > 0 && num > 0) setUnitCost((t / num).toFixed(2));
-    } else if (field === 'unit') {
-      setUnitCost(val);
-      const q = parseFloat(quantity);
-      if (q > 0 && !isNaN(num)) setTotalPrice((num * q).toFixed(2));
-    }
-  };
-
   const handleAddBatch = (e: React.FormEvent) => {
     e.preventDefault();
-    const p = parseFloat(totalPrice);
-    const q = parseFloat(quantity);
-    const u = parseFloat(unitCost);
+    const p = totalPrice;
+    const q = quantity;
+    const u = unitCost;
     
     let finalSourceId = null;
     if (sourceInput.trim()) {
@@ -73,7 +57,7 @@ export function MaterialDetail() {
         createdAt: Date.now()
       });
       setShowBatchForm(false);
-      setTotalPrice(''); setQuantity(''); setUnitCost(''); setSourceInput('');
+      setTotalPrice(0); setQuantity(0); setUnitCost(0); setSourceInput('');
     }
   };
 
@@ -139,7 +123,7 @@ export function MaterialDetail() {
                  }} 
                  className="flex items-center gap-1 bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg text-sm font-bold active:scale-95 transition-transform"
                >
-                 <ShoppingCart size={16}/> 入清單
+                 <ShoppingCart size={16}/> 放入進貨清單
                </button>
                <button onClick={() => setShowBatchForm(true)} className="flex items-center gap-1 bg-primary/10 text-primary px-3 py-1.5 rounded-lg text-sm font-bold active:scale-95 transition-transform">
                  <Plus size={16}/> 新增購入
@@ -239,42 +223,15 @@ export function MaterialDetail() {
                   </datalist>
                 </div>
 
-                <div className="grid grid-cols-3 gap-3 mt-2 items-end">
-                   <div>
-                     <label className="block text-xs font-medium text-foreground/60 mb-1">購買數量</label>
-                     <input 
-                       required 
-                       type="number" 
-                       step={type?.defaultUnit === '顆' ? "1" : "0.01"} 
-                       min={type?.defaultUnit === '顆' ? "1" : "0.01"} 
-                       value={quantity} 
-                       onChange={e => handlePriceChange('qty', e.target.value)} 
-                       className="w-full p-2.5 rounded-xl border bg-gray-50 text-sm text-center" 
-                     />
-                   </div>
-                   <div>
-                     <label className="block text-xs font-medium text-foreground/60 mb-1">購買單價</label>
-                     <input 
-                       required 
-                       type="number" 
-                       step="0.01" 
-                       value={unitCost} 
-                       onChange={e => handlePriceChange('unit', e.target.value)} 
-                       className="w-full p-2.5 rounded-xl border bg-gray-50 text-sm text-center" 
-                     />
-                   </div>
-                   <div>
-                     <label className="block text-xs font-medium text-foreground/60 mb-1">購買總價</label>
-                     <input 
-                       required
-                       type="number" 
-                       step="0.1" 
-                       value={totalPrice} 
-                       onChange={e => handlePriceChange('total', e.target.value)} 
-                       className="w-full p-2.5 rounded-xl border bg-gray-50 text-sm text-center" 
-                     />
-                   </div>
-                   <p className="col-span-3 text-[10px] text-gray-400 mt-1">等式：數量 × 單價 = 總價</p>
+                <div className="mt-4">
+                  <BatchPriceInput 
+                    defaultUnit={type?.defaultUnit}
+                    onChange={(q, u, t) => {
+                      setQuantity(q);
+                      setUnitCost(u);
+                      setTotalPrice(t);
+                    }}
+                  />
                 </div>
                 
                 <button type="submit" disabled={!quantity || !unitCost} className="mt-4 w-full bg-primary text-white py-4 rounded-xl font-bold tracking-wider hover:opacity-90 active:scale-95 transition-transform disabled:opacity-50">

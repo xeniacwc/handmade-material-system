@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
 import { useStore } from '../../store/useStore';
 import { ImageUploader } from '../../components/ImageUploader';
@@ -15,7 +15,10 @@ export function MaterialForm() {
   const { id } = useParams<{ id: string }>();
   const isEditMode = Boolean(id);
   
-  const { types, addMaterial, updateMaterial, materials, namingOptions } = useStore();
+  const { types, addMaterial, updateMaterial, materials, namingOptions, addShoppingItem } = useStore();
+  
+  const location = useLocation();
+  const isFromRestock = new URLSearchParams(location.search).get('redirect') === 'restock';
 
   const existingMaterial = isEditMode ? materials.find(m => m.id === id) : null;
 
@@ -143,6 +146,11 @@ export function MaterialForm() {
         tagIds: [],
         createdAt: Date.now()
       });
+      if (isFromRestock) {
+        addShoppingItem({ id: crypto.randomUUID(), materialId: matId, sourceId: null, quantity: 1, unitCost: 0, createdAt: Date.now() });
+        navigate('/shopping-list', { replace: true });
+        return;
+      }
     }
     navigate(-1);
   };

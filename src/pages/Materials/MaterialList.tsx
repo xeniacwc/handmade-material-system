@@ -1,7 +1,7 @@
 import React, { useRef, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/useStore';
-import { PackageOpen, Upload, Loader2, AlertCircle, ShoppingCart, Filter, Search } from 'lucide-react';
+import { PackageOpen, Upload, Loader2, AlertCircle, ShoppingCart, Filter, Search, CheckCircle } from 'lucide-react';
 import { compressImage } from '../../lib/imageUtils';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -12,7 +12,7 @@ function cn(...inputs: (string | undefined | null | false)[]) {
 
 export function MaterialList() {
   const navigate = useNavigate();
-  const { materials, batches, types, addMaterials, namingOptions } = useStore();
+  const { materials, batches, types, addMaterials, namingOptions, addShoppingItem } = useStore();
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -23,6 +23,10 @@ export function MaterialList() {
   const [showFilters, setShowFilters] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterAttributes, setFilterAttributes] = useState<Record<string, string[]>>({});
+
+  // Selection state
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [selectedMaterialIds, setSelectedMaterialIds] = useState<string[]>([]);
 
   const handleBatchUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -124,13 +128,43 @@ export function MaterialList() {
 
   const activeFilterCount = Object.values(filterAttributes).flat().length;
 
+  const handleBatchAddToRestock = () => {
+    selectedMaterialIds.forEach(id => {
+      addShoppingItem({
+        id: crypto.randomUUID(),
+        materialId: id,
+        sourceId: null,
+        quantity: 1,
+        unitCost: 0,
+        createdAt: Date.now()
+      });
+    });
+    alert(`已將 ${selectedMaterialIds.length} 項材料加入進貨清單！`);
+    setIsSelectionMode(false);
+    setSelectedMaterialIds([]);
+    navigate('/shopping-list');
+  };
+
   return (
     <div className="flex flex-col h-screen bg-gray-50 pb-20">
       <div className="bg-white border-b px-4 pt-safe shrink-0 sticky top-0 z-20">
         <div className="flex items-center justify-between py-4">
           <h1 className="text-2xl font-bold text-foreground">材料庫</h1>
           <div className="flex items-center gap-3">
-             <button onClick={() => navigate('/shopping-list')} className="text-foreground relative p-2">
+             <button 
+               onClick={() => {
+                 setIsSelectionMode(!isSelectionMode);
+                 setSelectedMaterialIds([]);
+               }}
+               className={cn(
+                 "flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold active:scale-95 transition-colors",
+                 isSelectionMode ? "bg-primary text-white" : "bg-gray-100 text-gray-600"
+               )}
+             >
+               <CheckCircle size={14} />
+               {isSelectionMode ? '取消多選' : '批次選取'}
+             </button>
+             <button onClick={() => navigate('/shopping-list')} className="text-foreground relative p-2 ml-1">
                <ShoppingCart size={22} />
              </button>
              <button 
@@ -244,7 +278,25 @@ export function MaterialList() {
               const type = types.find(t => t.id === tId);
               
               return (
-                <div key={m.id} onClick={() => navigate(`/materials/${m.id}`)} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col group cursor-pointer hover:shadow-md transition-all active:scale-95">
+                <div 
+                  key={m.id} 
+                  onClick={() => {
+                    if (isSelectionMode) {
+                      setSelectedMaterialIds(prev => prev.includes(m.id) ? prev.filter(x => x !== m.id) : [...prev, m.id]);
+                    } else {
+                      navigate(`/materials/${m.id}`);
+                    }
+                  }} 
+                  className={cn(
+                    "bg-white rounded-xl shadow-sm border overflow-hidden flex flex-col group cursor-pointer hover:shadow-md transition-all active:scale-95 relative",
+                    isSelectionMode && selectedMaterialIds.includes(m.id) ? "border-primary ring-2 ring-primary" : "border-gray-100"
+                  )}
+                >
+                  {isSelectionMode && (
+                    <div className="absolute top-2 left-2 z-10 w-6 h-6 rounded-full bg-white/90 backdrop-blur border flex items-center justify-center">
+                      {selectedMaterialIds.includes(m.id) && <CheckCircle size={16} className="text-primary" />}
+                    </div>
+                  )}
                   <div className="aspect-square bg-gray-50 relative">
                     {m.image ? (
                       <img src={m.image} alt={m.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
@@ -272,6 +324,20 @@ export function MaterialList() {
           </div>
         )}
       </div>
+
+      {/* Floating Action Bar for Selection Mode */}
+      {isSelectionMode && (
+        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 w-[90%] max-w-md p-4 bg-gray-900 text-white rounded-2xl shadow-xl flex justify-between items-center animate-in slide-in-from-bottom-5 z-50">
+           <span className="text-sm font-bold">已選取 {selectedMaterialIds.length} 項材料</span>
+           <button 
+             onClick={handleBatchAddToRestock} 
+             disabled={selectedMaterialIds.length === 0}
+             className="bg-white text-gray-900 px-4 py-2 rounded-xl text-sm font-black active:scale-95 transition-transform disabled:opacity-50"
+           >
+             加入進貨清單
+           </button>
+        </div>
+      )}
     </div>
   );
 }
