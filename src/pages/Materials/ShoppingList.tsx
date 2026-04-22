@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/useStore';
 import type { ShoppingItem } from '../../store/useStore';
-import { ChevronLeft, Package, Trash2, CheckCircle, Store, Plus, X } from 'lucide-react';
+import { Package, Trash2, CheckCircle, Store, Plus, X } from 'lucide-react';
 import { BatchPriceInput } from '../../components/BatchPriceInput';
 import { toast } from '../../components/Toast';
 
@@ -85,12 +85,14 @@ export function ShoppingList() {
   const sourcePickerItem = sourcePickerItemId ? shoppingItems.find(i => i.id === sourcePickerItemId) : null;
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50 pb-20">
-      <header className="flex items-center justify-between p-4 bg-white/80 backdrop-blur-md sticky top-0 z-10 border-b">
-        <button onClick={() => navigate('/materials')} className="p-2 -ml-2 text-foreground/70"><ChevronLeft size={24} /></button>
-        <h1 className="text-xl font-bold">進貨清單</h1>
-        <button onClick={() => navigate('/materials/new?redirect=restock')} className="p-2 -mr-2 text-primary" title="建立新材料並加入清單">
-          <Plus size={24} />
+    <div className="flex flex-col h-screen bg-gray-50 pb-16">
+      <header className="flex items-center justify-between px-4 pt-5 pb-3 bg-white border-b">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">進貨清單</h1>
+          <p className="text-sm text-foreground/50 mt-0.5">共 {shoppingItems.length} 項待進貨</p>
+        </div>
+        <button onClick={() => navigate('/materials/new?redirect=restock')} className="flex items-center gap-1.5 bg-black text-white px-3 py-2 rounded-full text-sm font-bold active:scale-95 transition-transform" title="建立新材料並加入清單">
+          <Plus size={16} /> 新增材料
         </button>
       </header>
 
