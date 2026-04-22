@@ -147,6 +147,14 @@ export async function dbDeleteNamingOption(id: string) {
   await supabase.from('naming_options').delete().eq('id', id);
 }
 
+export async function dbUpdateNamingOption(id: string, value: string) {
+  await supabase.from('naming_options').update({ value }).eq('id', id);
+}
+
+export async function dbUpdateSource(id: string, name: string) {
+  await supabase.from('purchase_sources').update({ name }).eq('id', id);
+}
+
 export async function dbAddTag(t: MaterialTag) {
   await supabase.from('material_tags').insert({ id: t.id, name: t.name });
 }

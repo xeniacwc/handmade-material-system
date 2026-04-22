@@ -1,24 +1,97 @@
 import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ChevronLeft, Edit2, Plus, Box, Calendar, DollarSign, Store, Filter, ShoppingCart } from 'lucide-react';
+import { ChevronLeft, Edit2, Plus, Box, Calendar, Store, ShoppingCart, X, CheckCircle } from 'lucide-react';
 import { useStore } from '../../store/useStore';
 import { BatchPriceInput } from '../../components/BatchPriceInput';
+import { toast } from '../../components/Toast';
 
+/* ── Bottom Sheet: Source Picker ── */
+function SourcePicker({ currentSourceId, sources, onSelect, onClose }: {
+  currentSourceId: string | null;
+  sources: { id: string; name: string }[];
+  onSelect: (id: string | null) => void;
+  onClose: () => void;
+}) {
+  const [newName, setNewName] = useState('');
+  const { addSource } = useStore();
+
+  const handleAddNew = () => {
+    const trimmed = newName.trim();
+    if (!trimmed) return;
+    const id = crypto.randomUUID();
+    addSource({ id, name: trimmed });
+    onSelect(id);
+    onClose();
+    toast.success(`已新增進貨來源「${trimmed}」`);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end bg-black/40 animate-in fade-in duration-200" onClick={onClose}>
+      <div
+        className="w-full bg-white rounded-t-3xl p-6 pb-safe animate-in slide-in-from-bottom duration-300 shadow-2xl max-h-[75vh] flex flex-col"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between mb-5">
+          <h3 className="font-bold text-lg">選擇進貨來源</h3>
+          <button onClick={onClose} className="p-2 bg-gray-100 rounded-full text-gray-500"><X size={18} /></button>
+        </div>
+        <div className="flex flex-col gap-2 overflow-y-auto flex-1 mb-4">
+          <button
+            onClick={() => { onSelect(null); onClose(); }}
+            className={`flex items-center gap-3 p-3 rounded-xl text-sm font-medium transition-colors text-left ${!currentSourceId ? 'bg-primary/10 text-primary' : 'bg-gray-50 text-gray-700 hover:bg-gray-100'}`}
+          >
+            <Store size={16} /> 未指定來源
+            {!currentSourceId && <CheckCircle size={15} className="ml-auto" />}
+          </button>
+          {sources.map(s => (
+            <button
+              key={s.id}
+              onClick={() => { onSelect(s.id); onClose(); }}
+              className={`flex items-center gap-3 p-3 rounded-xl text-sm font-medium transition-colors text-left ${currentSourceId === s.id ? 'bg-primary/10 text-primary' : 'bg-gray-50 text-gray-700 hover:bg-gray-100'}`}
+            >
+              <Store size={16} /> {s.name}
+              {currentSourceId === s.id && <CheckCircle size={15} className="ml-auto" />}
+            </button>
+          ))}
+        </div>
+        {/* Add new source inline */}
+        <div className="flex gap-2 border-t pt-4">
+          <input
+            type="text"
+            value={newName}
+            onChange={e => setNewName(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleAddNew()}
+            placeholder="新增進貨來源..."
+            className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+          />
+          <button
+            onClick={handleAddNew}
+            disabled={!newName.trim()}
+            className="bg-primary text-white px-4 py-2 rounded-xl text-sm font-bold disabled:opacity-40 active:scale-95 transition-transform"
+          >
+            新增
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function MaterialDetail() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const { materials, batches, types, tags, sources, addBatch, addSource, addShoppingItem } = useStore();
+  const { materials, batches, types, tags, sources, addBatch, addShoppingItem } = useStore();
 
   const material = materials.find(m => m.id === id);
-  const materialBatches = batches.filter(b => b.materialId === id).sort((a,b) => b.createdAt - a.createdAt);
+  const materialBatches = batches.filter(b => b.materialId === id).sort((a, b) => b.createdAt - a.createdAt);
   const type = types.find(t => t.id === material?.typeId);
 
   const [showBatchForm, setShowBatchForm] = useState(false);
   const [filterSourceId, setFilterSourceId] = useState('');
-  
+  const [showSourcePicker, setShowSourcePicker] = useState(false);
+
   // Batch Form State
-  const [sourceInput, setSourceInput] = useState('');
+  const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null);
   const [totalPrice, setTotalPrice] = useState(0);
   const [quantity, setQuantity] = useState(0);
   const [unitCost, setUnitCost] = useState(0);
@@ -27,44 +100,31 @@ export function MaterialDetail() {
     return <div className="p-8 text-center text-gray-500">找不到材料</div>;
   }
 
+  const selectedSourceName = selectedSourceId ? sources.find(s => s.id === selectedSourceId)?.name : null;
+
   const handleAddBatch = (e: React.FormEvent) => {
     e.preventDefault();
-    const p = totalPrice;
-    const q = quantity;
-    const u = unitCost;
-    
-    let finalSourceId = null;
-    if (sourceInput.trim()) {
-      let existing = sources.find(s => s.name === sourceInput.trim());
-      if (existing) {
-        finalSourceId = existing.id;
-      } else {
-        const newId = crypto.randomUUID();
-        addSource({ id: newId, name: sourceInput.trim() });
-        finalSourceId = newId;
-      }
-    }
+    if (quantity <= 0) { toast.error('請填寫數量'); return; }
 
-    if (q > 0 && u >= 0) {
-      addBatch({
-        id: crypto.randomUUID(),
-        materialId: material.id,
-        sourceId: finalSourceId,
-        totalPrice: p || (u * q),
-        quantity: q,
-        remaining: q,
-        unitCost: u,
-        createdAt: Date.now()
-      });
-      setShowBatchForm(false);
-      setTotalPrice(0); setQuantity(0); setUnitCost(0); setSourceInput('');
-    }
+    addBatch({
+      id: crypto.randomUUID(),
+      materialId: material.id,
+      sourceId: selectedSourceId,
+      totalPrice: totalPrice || (unitCost * quantity),
+      quantity,
+      remaining: quantity,
+      unitCost,
+      createdAt: Date.now()
+    });
+    setShowBatchForm(false);
+    setTotalPrice(0); setQuantity(0); setUnitCost(0); setSelectedSourceId(null);
+    toast.success('進貨紀錄已登錄！');
   };
 
   const totalRemaining = materialBatches.reduce((s, b) => s + b.remaining, 0);
   const totalQtyBought = materialBatches.reduce((s, b) => s + b.quantity, 0);
   const totalCostBought = materialBatches.reduce((s, b) => s + b.totalPrice, 0);
-  const avgCost = totalQtyBought > 0 ? (totalCostBought / totalQtyBought) : 0;
+  const avgCost = totalQtyBought > 0 ? Math.round(totalCostBought / totalQtyBought) : 0;
 
   const filteredBatches = filterSourceId ? materialBatches.filter(b => b.sourceId === filterSourceId) : materialBatches;
 
@@ -81,165 +141,174 @@ export function MaterialDetail() {
         <div className="bg-white p-6 shadow-sm border-b">
           <div className="flex gap-6">
             <div className="w-28 h-28 bg-gray-100 rounded-2xl overflow-hidden flex-shrink-0 shadow-inner">
-               {material.image ? <img src={material.image} alt="" className="w-full h-full object-cover"/> : <div className="w-full h-full flex items-center justify-center text-gray-300"><Box size={32}/></div>}
+              {material.image
+                ? <img src={material.image} alt="" className="w-full h-full object-cover" />
+                : <div className="w-full h-full flex items-center justify-center text-gray-300"><Box size={32} /></div>}
             </div>
             <div className="flex-1 min-w-0">
-               <span className="bg-primary/10 text-primary px-2 py-1 rounded text-xs font-bold">{type?.name}</span>
-               <h2 className="text-2xl font-bold text-foreground mt-2 break-words leading-tight">{material.name}</h2>
-               
-               <div className="flex flex-wrap gap-1 mt-3">
-                 {material.tagIds.map(tid => {
-                   const tag = tags.find(x => x.id === tid);
-                   return tag && <span key={tid} className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-xs">#{tag.name}</span>
-                 })}
-               </div>
+              <span className="bg-primary/10 text-primary px-2 py-1 rounded text-xs font-bold">{type?.name}</span>
+              <h2 className="text-2xl font-bold text-foreground mt-2 break-words leading-tight">{material.name}</h2>
+              <div className="flex flex-wrap gap-1 mt-3">
+                {material.tagIds.map(tid => {
+                  const tag = tags.find(x => x.id === tid);
+                  return tag && <span key={tid} className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-xs">#{tag.name}</span>;
+                })}
+              </div>
             </div>
           </div>
-          
+
           <div className="mt-6 flex bg-background p-4 rounded-2xl border justify-between items-center text-center">
-             <div className="flex-1 border-r border-gray-200">
-                <p className="text-xs text-gray-500 mb-1">總庫存</p>
-                <p className="text-xl font-bold text-foreground">{totalRemaining.toFixed(1)} <span className="text-xs font-normal text-gray-500">{type?.defaultUnit}</span></p>
-             </div>
-             <div className="flex-1">
-                <p className="text-xs text-gray-500 mb-1">歷史平均單價</p>
-                <p className="text-xl font-bold text-primary">${avgCost.toFixed(2)}</p>
-             </div>
+            <div className="flex-1 border-r border-gray-200">
+              <p className="text-xs text-gray-500 mb-1">總庫存</p>
+              <p className="text-xl font-bold text-foreground">{totalRemaining.toFixed(1)} <span className="text-xs font-normal text-gray-500">{type?.defaultUnit}</span></p>
+            </div>
+            <div className="flex-1">
+              <p className="text-xs text-gray-500 mb-1">歷史平均單價</p>
+              <p className="text-xl font-bold text-primary">{avgCost} 元</p>
+            </div>
           </div>
           {materialBatches.length > 0 && (
-            <p className="text-center text-[10px] text-gray-400 mt-2">基於 {materialBatches.length} 筆購入紀錄運算</p>
+            <p className="text-center text-[10px] text-gray-400 mt-2">基於 {materialBatches.length} 筆進貨紀錄計算</p>
           )}
         </div>
 
         {/* Batches Section */}
         <div className="p-4 mt-2">
           <div className="flex justify-between items-center mb-4">
-             <h3 className="font-bold text-lg text-foreground">購入紀錄</h3>
-             <div className="flex gap-2">
-               <button 
-                 onClick={() => {
-                   addShoppingItem({ id: crypto.randomUUID(), materialId: material.id, sourceId: null, quantity: 1, unitCost: 0, createdAt: Date.now() });
-                   alert('已加入購物清單！');
-                 }} 
-                 className="flex items-center gap-1 bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg text-sm font-bold active:scale-95 transition-transform"
-               >
-                 <ShoppingCart size={16}/> 放入進貨清單
-               </button>
-               <button onClick={() => setShowBatchForm(true)} className="flex items-center gap-1 bg-primary/10 text-primary px-3 py-1.5 rounded-lg text-sm font-bold active:scale-95 transition-transform">
-                 <Plus size={16}/> 新增購入
-               </button>
-             </div>
+            <h3 className="font-bold text-lg text-foreground">進貨紀錄</h3>
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  addShoppingItem({ id: crypto.randomUUID(), materialId: material.id, sourceId: null, quantity: 1, unitCost: 0, createdAt: Date.now() });
+                  toast.success('已加入進貨清單！');
+                }}
+                className="flex items-center gap-1 bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg text-sm font-bold active:scale-95 transition-transform"
+              >
+                <ShoppingCart size={16} /> 加入清單
+              </button>
+              <button
+                onClick={() => setShowBatchForm(true)}
+                className="flex items-center gap-1 bg-primary/10 text-primary px-3 py-1.5 rounded-lg text-sm font-bold active:scale-95 transition-transform"
+              >
+                <Plus size={16} /> 登錄進貨
+              </button>
+            </div>
           </div>
 
-          {/* Filtering */}
+          {/* Source filter chips */}
           {materialBatches.length > 0 && (
-             <div className="mb-4 flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
-               <div className="flex items-center text-gray-400 text-xs flex-shrink-0 mr-1"><Filter size={14}/></div>
-               <button 
-                 onClick={() => setFilterSourceId('')} 
-                 className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap transition-colors ${filterSourceId === '' ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-500'}`}
-               >
-                 全部管道
-               </button>
-               {Array.from(new Set(materialBatches.map(b => b.sourceId).filter(Boolean))).map(id => {
-                 const source = sources.find(s => s.id === id);
-                 if (!source) return null;
-                 return (
-                   <button 
-                     key={source.id} 
-                     onClick={() => setFilterSourceId(source.id)} 
-                     className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap transition-colors ${filterSourceId === source.id ? 'bg-primary text-white' : 'bg-gray-100 text-gray-500'}`}
-                   >
-                     {source.name}
-                   </button>
-                 )
-               })}
-             </div>
+            <div className="mb-4 flex flex-wrap gap-2">
+              <button
+                onClick={() => setFilterSourceId('')}
+                className={`px-3 py-1 rounded-full text-xs font-bold transition-colors ${filterSourceId === '' ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-500'}`}
+              >
+                全部
+              </button>
+              {Array.from(new Set(materialBatches.map(b => b.sourceId).filter(Boolean))).map(sid => {
+                const source = sources.find(s => s.id === sid);
+                if (!source) return null;
+                return (
+                  <button
+                    key={source.id}
+                    onClick={() => setFilterSourceId(source.id)}
+                    className={`px-3 py-1 rounded-full text-xs font-bold transition-colors ${filterSourceId === source.id ? 'bg-primary text-white' : 'bg-gray-100 text-gray-500'}`}
+                  >
+                    {source.name}
+                  </button>
+                );
+              })}
+            </div>
           )}
 
           <div className="flex flex-col gap-3">
             {filteredBatches.map(b => {
-               const source = sources.find(s => s.id === b.sourceId);
-               return (
-                 <div key={b.id} className="bg-white p-4 rounded-2xl border shadow-sm flex flex-col gap-3">
-                   <div className="flex justify-between items-start border-b pb-2">
-                      <div className="flex items-center gap-2 text-gray-500 text-xs">
-                         <Calendar size={14} />
-                         <span>{new Date(b.createdAt).toLocaleDateString()}</span>
-                      </div>
-                      <div className="flex items-center gap-1 text-xs font-medium text-primary">
-                         <Store size={14} />
-                         <span>{source?.name || '未指定來源'}</span>
-                      </div>
-                   </div>
-                   <div className="flex justify-between items-end">
-                      <div>
-                         <p className="text-[10px] text-gray-400 mb-0.5">取得數量 (剩餘 <span className="font-bold text-gray-600">{b.remaining}</span>)</p>
-                         <p className="text-lg font-bold">{b.quantity} <span className="text-sm font-normal text-gray-500">{type?.defaultUnit}</span></p>
-                      </div>
-                      <div className="text-right">
-                         <p className="text-[10px] text-gray-400 mb-0.5">單價 (總金額 ${b.totalPrice})</p>
-                         <div className="flex items-center justify-end gap-1 text-lg font-bold text-primary">
-                           <DollarSign size={16} />
-                           {b.unitCost}
-                         </div>
-                      </div>
-                   </div>
-                 </div>
-               )
+              const source = sources.find(s => s.id === b.sourceId);
+              return (
+                <div key={b.id} className="bg-white p-4 rounded-2xl border shadow-sm flex flex-col gap-3">
+                  <div className="flex justify-between items-start border-b pb-2">
+                    <div className="flex items-center gap-2 text-gray-500 text-xs">
+                      <Calendar size={14} />
+                      <span>{new Date(b.createdAt).toLocaleDateString('zh-TW')}</span>
+                    </div>
+                    <div className="flex items-center gap-1 text-xs font-medium text-primary">
+                      <Store size={14} />
+                      <span>{source?.name || '未指定來源'}</span>
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-end">
+                    <div>
+                      <p className="text-[10px] text-gray-400 mb-0.5">取得數量 (剩餘 <span className="font-bold text-gray-600">{b.remaining}</span>)</p>
+                      <p className="text-lg font-bold">{b.quantity} <span className="text-sm font-normal text-gray-500">{type?.defaultUnit}</span></p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[10px] text-gray-400 mb-0.5">單價（總計 {b.totalPrice} 元）</p>
+                      <p className="text-lg font-bold text-primary">{b.unitCost} 元</p>
+                    </div>
+                  </div>
+                </div>
+              );
             })}
             {filteredBatches.length === 0 && (
-               <div className="py-10 text-center text-gray-400 bg-white border border-dashed rounded-2xl">
-                 <p>沒有找到相關購入紀錄</p>
-               </div>
+              <div className="py-10 text-center text-gray-400 bg-white border border-dashed rounded-2xl">
+                <p>尚無進貨紀錄</p>
+              </div>
             )}
           </div>
         </div>
       </div>
 
-      {/* Add Batch Modal */}
+      {/* Add Batch Bottom Sheet */}
       {showBatchForm && (
         <div className="fixed inset-0 z-50 bg-black/40 flex items-end animate-in fade-in duration-200">
           <div className="bg-white w-full rounded-t-3xl p-6 pb-safe animate-in slide-in-from-bottom duration-300">
-             <div className="flex justify-between items-center mb-6">
-                <h3 className="font-bold text-xl">新增購入批次</h3>
-                <button onClick={() => setShowBatchForm(false)} className="text-gray-400 bg-gray-100 p-2 rounded-full"><ChevronLeft className="rotate-[-90deg]"/></button>
-             </div>
-             
-             <form onSubmit={handleAddBatch} className="flex flex-col gap-4">
-                <div>
-                  <label className="block text-xs font-medium text-foreground/60 mb-1">購入管道</label>
-                  <input 
-                    type="text" 
-                    required 
-                    list="sources-list-detail"
-                    value={sourceInput} 
-                    onChange={e => setSourceInput(e.target.value)} 
-                    className="w-full p-3 rounded-xl border bg-gray-50 text-sm"
-                    placeholder="選擇或輸入新管道..."
-                  />
-                  <datalist id="sources-list-detail">
-                    {sources.map(s => <option key={s.id} value={s.name} />)}
-                  </datalist>
-                </div>
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="font-bold text-xl">登錄進貨</h3>
+              <button onClick={() => setShowBatchForm(false)} className="text-gray-400 bg-gray-100 p-2 rounded-full"><X size={18} /></button>
+            </div>
 
-                <div className="mt-4">
-                  <BatchPriceInput 
-                    defaultUnit={type?.defaultUnit}
-                    onChange={(q, u, t) => {
-                      setQuantity(q);
-                      setUnitCost(u);
-                      setTotalPrice(t);
-                    }}
-                  />
-                </div>
-                
-                <button type="submit" disabled={!quantity || !unitCost} className="mt-4 w-full bg-primary text-white py-4 rounded-xl font-bold tracking-wider hover:opacity-90 active:scale-95 transition-transform disabled:opacity-50">
-                  登錄批次
+            <form onSubmit={handleAddBatch} className="flex flex-col gap-4">
+              {/* Source picker button */}
+              <div>
+                <label className="block text-xs font-medium text-foreground/60 mb-1">進貨來源</label>
+                <button
+                  type="button"
+                  onClick={() => setShowSourcePicker(true)}
+                  className="w-full flex items-center gap-2 p-3 rounded-xl border bg-gray-50 text-sm text-left hover:border-primary transition-colors"
+                >
+                  <Store size={16} className="text-gray-400" />
+                  <span className={selectedSourceName ? 'text-foreground font-medium' : 'text-gray-400'}>
+                    {selectedSourceName || '點擊選擇進貨來源...'}
+                  </span>
                 </button>
-             </form>
+              </div>
+
+              <div>
+                <BatchPriceInput
+                  defaultUnit={type?.defaultUnit}
+                  onChange={(q, u, t) => { setQuantity(q); setUnitCost(u); setTotalPrice(t); }}
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={!quantity}
+                className="mt-2 w-full bg-primary text-white py-4 rounded-xl font-bold tracking-wider hover:opacity-90 active:scale-95 transition-transform disabled:opacity-50"
+              >
+                確認新增進貨
+              </button>
+            </form>
           </div>
         </div>
+      )}
+
+      {/* Source Picker Sheet */}
+      {showSourcePicker && (
+        <SourcePicker
+          currentSourceId={selectedSourceId}
+          sources={sources}
+          onSelect={(id) => setSelectedSourceId(id)}
+          onClose={() => setShowSourcePicker(false)}
+        />
       )}
     </div>
   );

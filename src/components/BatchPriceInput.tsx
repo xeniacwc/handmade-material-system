@@ -6,68 +6,74 @@ export interface BatchPriceInputProps {
   initialTotalPrice?: number;
   defaultUnit?: string;
   onChange: (qty: number, unitCost: number, totalPrice: number) => void;
-  // compact mode for shopping list row, regular mode for new batch
-  compact?: boolean; 
+  compact?: boolean;
 }
 
 export function BatchPriceInput({ initialQuantity, initialUnitCost, initialTotalPrice, defaultUnit, onChange, compact = false }: BatchPriceInputProps) {
-  const [totalPrice, setTotalPrice] = useState<string>(initialTotalPrice ? String(initialTotalPrice) : '');
+  const [totalPrice, setTotalPrice] = useState<string>(initialTotalPrice ? String(Math.round(initialTotalPrice)) : '');
   const [quantity, setQuantity] = useState<string>(initialQuantity ? String(initialQuantity) : '');
-  const [unitCost, setUnitCost] = useState<string>(initialUnitCost ? String(initialUnitCost) : '');
+  const [unitCost, setUnitCost] = useState<string>(initialUnitCost ? String(Math.round(initialUnitCost)) : '');
 
-  // Notify parent of numerical changes
   useEffect(() => {
-    const q = parseFloat(quantity) || 0;
-    const u = parseFloat(unitCost) || 0;
-    const t = parseFloat(totalPrice) || 0;
+    const q = parseInt(quantity) || 0;
+    const u = parseInt(unitCost) || 0;
+    const t = parseInt(totalPrice) || 0;
     onChange(q, u, t);
   }, [quantity, unitCost, totalPrice]);
 
-  const handlePriceChange = (field: 'total' | 'qty' | 'unit', val: string) => {
-    const num = parseFloat(val);
+  const handleChange = (field: 'total' | 'qty' | 'unit', val: string) => {
+    // Only allow integer input
+    const intVal = val === '' ? '' : String(Math.floor(Math.abs(parseFloat(val) || 0)));
+    const num = parseInt(intVal) || 0;
+
     if (field === 'total') {
-      setTotalPrice(val);
-      const q = parseFloat(quantity);
-      if (q > 0 && !isNaN(num)) setUnitCost(Number(num / q).toFixed(4).replace(/\.?0+$/, ''));
+      setTotalPrice(intVal);
+      const q = parseInt(quantity) || 0;
+      if (q > 0 && num > 0) setUnitCost(String(Math.round(num / q)));
     } else if (field === 'qty') {
-      setQuantity(val);
-      const t = parseFloat(totalPrice);
-      if (t > 0 && num > 0) setUnitCost(Number(t / num).toFixed(4).replace(/\.?0+$/, ''));
+      setQuantity(intVal);
+      const t = parseInt(totalPrice) || 0;
+      if (t > 0 && num > 0) setUnitCost(String(Math.round(t / num)));
+      const u = parseInt(unitCost) || 0;
+      if (u > 0 && num > 0) setTotalPrice(String(Math.round(u * num)));
     } else if (field === 'unit') {
-      setUnitCost(val);
-      const q = parseFloat(quantity);
-      if (q > 0 && !isNaN(num)) setTotalPrice(Number(num * q).toFixed(2).replace(/\.?0+$/, ''));
+      setUnitCost(intVal);
+      const q = parseInt(quantity) || 0;
+      if (q > 0 && num > 0) setTotalPrice(String(Math.round(num * q)));
     }
   };
 
-  const stepQty = defaultUnit === '顆' ? "1" : "0.01";
-  const minQty = defaultUnit === '顆' ? "1" : "0.01";
+  const stepQty = defaultUnit === '顆' ? '1' : '1';
+  const minQty = '1';
 
   if (compact) {
     return (
       <div className="grid grid-cols-3 gap-2">
         <div>
-          <label className="text-[10px] text-gray-500 mb-0.5 block">預計購買數量</label>
-          <input 
-            type="number" step={stepQty} min={minQty}
-            value={quantity} onChange={e => handlePriceChange('qty', e.target.value)}
-            className="w-full bg-gray-50 border rounded-md px-2 py-1 text-xs text-center" placeholder="0"
+          <label className="text-[10px] text-gray-500 mb-0.5 block">數量</label>
+          <input
+            type="number" inputMode="numeric" step={stepQty} min={minQty}
+            value={quantity} onChange={e => handleChange('qty', e.target.value)}
+            className="w-full bg-gray-50 border rounded-md px-2 py-1.5 text-xs text-center focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+            placeholder="0"
           />
         </div>
         <div>
-          <label className="text-[10px] text-gray-500 mb-0.5 block">單價預估</label>
-          <input 
-            type="number" step="any" min="0" 
-            value={unitCost} onChange={e => handlePriceChange('unit', e.target.value)}
-            className="w-full bg-gray-50 border rounded-md px-2 py-1 text-xs text-center" placeholder="$0.00"
+          <label className="text-[10px] text-gray-500 mb-0.5 block">單價（元）</label>
+          <input
+            type="number" inputMode="numeric" step="1" min="0"
+            value={unitCost} onChange={e => handleChange('unit', e.target.value)}
+            className="w-full bg-gray-50 border rounded-md px-2 py-1.5 text-xs text-center focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+            placeholder="0"
           />
         </div>
         <div>
-          <label className="text-[10px] text-primary/70 font-bold mb-0.5 block">預估總價</label>
-          <input 
-            type="number" step="any" min="0" 
-            value={totalPrice} onChange={e => handlePriceChange('total', e.target.value)}
-            className="w-full bg-primary/5 border border-primary/20 rounded-md px-2 py-1 text-xs text-center font-bold text-primary" placeholder="$0.00"
+          <label className="text-[10px] text-primary/70 font-bold mb-0.5 block">總價（元）</label>
+          <input
+            type="number" inputMode="numeric" step="1" min="0"
+            value={totalPrice} onChange={e => handleChange('total', e.target.value)}
+            className="w-full bg-primary/5 border border-primary/20 rounded-md px-2 py-1.5 text-xs text-center font-bold text-primary focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+            placeholder="0"
           />
         </div>
       </div>
@@ -75,35 +81,37 @@ export function BatchPriceInput({ initialQuantity, initialUnitCost, initialTotal
   }
 
   return (
-    <div className="grid grid-cols-3 gap-3 items-end">
-      <div>
-        <label className="block text-xs font-medium text-foreground/60 mb-1">購買數量</label>
-        <input 
-          required 
-          type="number" step={stepQty} min={minQty}
-          value={quantity} onChange={e => handlePriceChange('qty', e.target.value)}
-          className="w-full p-2.5 rounded-xl border bg-gray-50 text-sm text-center focus:border-primary focus:ring-1 focus:ring-primary outline-none" 
-        />
+    <div className="space-y-3">
+      <div className="grid grid-cols-3 gap-3">
+        <div>
+          <label className="block text-xs font-medium text-foreground/60 mb-1">數量</label>
+          <input
+            required
+            type="number" inputMode="numeric" step={stepQty} min={minQty}
+            value={quantity} onChange={e => handleChange('qty', e.target.value)}
+            className="w-full p-2.5 rounded-xl border bg-gray-50 text-sm text-center focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-foreground/60 mb-1">單價（元）</label>
+          <input
+            required
+            type="number" inputMode="numeric" step="1" min="0"
+            value={unitCost} onChange={e => handleChange('unit', e.target.value)}
+            className="w-full p-2.5 rounded-xl border bg-gray-50 text-sm text-center focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-foreground/60 mb-1">總價（元）</label>
+          <input
+            required
+            type="number" inputMode="numeric" step="1" min="0"
+            value={totalPrice} onChange={e => handleChange('total', e.target.value)}
+            className="w-full p-2.5 rounded-xl border border-primary/20 bg-primary/5 text-sm text-center font-bold text-primary focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+          />
+        </div>
       </div>
-      <div>
-        <label className="block text-xs font-medium text-foreground/60 mb-1">購買單價</label>
-        <input 
-          required 
-          type="number" step="any" min="0"
-          value={unitCost} onChange={e => handlePriceChange('unit', e.target.value)}
-          className="w-full p-2.5 rounded-xl border bg-gray-50 text-sm text-center focus:border-primary focus:ring-1 focus:ring-primary outline-none" 
-        />
-      </div>
-      <div>
-        <label className="block text-xs font-medium text-foreground/60 mb-1">購買總價</label>
-        <input 
-          required
-          type="number" step="any" min="0"
-          value={totalPrice} onChange={e => handlePriceChange('total', e.target.value)}
-          className="w-full p-2.5 rounded-xl border border-primary/20 bg-primary/5 text-sm text-center font-bold text-primary focus:border-primary focus:ring-1 focus:ring-primary outline-none" 
-        />
-      </div>
-      <p className="col-span-3 text-[10px] text-gray-400 mt-1">等式：數量 × 單價 = 總價 (輸入任兩項自動計算第三項)</p>
+      <p className="text-[10px] text-gray-400">輸入任兩項，第三項自動計算（單位：元，整數）</p>
     </div>
   );
 }

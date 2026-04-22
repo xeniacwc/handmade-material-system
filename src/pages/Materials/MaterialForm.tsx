@@ -220,7 +220,7 @@ export function MaterialForm() {
 
             {majorCategory === 'hardware' && (
               <>
-                {renderChips('材質', 'hardware_material')}
+                {renderChips('種類', 'hardware_material')}
                 {renderChips('顏色', 'hardware_color')}
                 {renderChips('尺寸', 'hardware_size')}
               </>

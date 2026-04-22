@@ -7,6 +7,7 @@ import {
   dbAddTag,
   dbAddType,
   dbAddSource,
+  dbUpdateSource,
   dbAddMaterial,
   dbAddMaterials,
   dbUpdateMaterial,
@@ -16,6 +17,7 @@ import {
   dbSaveProductRecord,
   dbAddNamingOption,
   dbDeleteNamingOption,
+  dbUpdateNamingOption,
   dbAddShoppingItem,
   dbUpdateShoppingItem,
   dbDeleteShoppingItem,
@@ -100,6 +102,8 @@ interface AppState {
   addProduct: (p: Product) => void;
   addNamingOption: (n: NamingOption) => void;
   deleteNamingOption: (id: string) => void;
+  updateNamingOption: (id: string, value: string) => void;
+  updateSource: (id: string, name: string) => void;
 
   // Shopping List
   addShoppingItem: (s: ShoppingItem) => void;
@@ -213,6 +217,16 @@ export const useStore = create<AppState>()(
       deleteNamingOption: (id) => {
         set((s) => ({ namingOptions: s.namingOptions.filter(no => no.id !== id) }));
         dbDeleteNamingOption(id).catch((e) => console.error('[Supabase] deleteNamingOption:', e));
+      },
+
+      updateNamingOption: (id, value) => {
+        set((s) => ({ namingOptions: s.namingOptions.map(no => no.id === id ? { ...no, value } : no) }));
+        dbUpdateNamingOption(id, value).catch((e) => console.error('[Supabase] updateNamingOption:', e));
+      },
+
+      updateSource: (id, name) => {
+        set((s) => ({ sources: s.sources.map(src => src.id === id ? { ...src, name } : src) }));
+        dbUpdateSource(id, name).catch((e) => console.error('[Supabase] updateSource:', e));
       },
 
       addShoppingItem: (si) => {

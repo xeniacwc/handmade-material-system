@@ -4,6 +4,7 @@ import { Package, ScrollText, Scissors, Plus, WifiOff, Loader2, Settings as Sett
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { useStore } from '../store/useStore';
+import { ToastContainer } from './Toast';
 
 function cn(...inputs: (string | undefined | null | false)[]) {
   return twMerge(clsx(inputs));
@@ -67,6 +68,7 @@ export function Layout() {
       <div className="flex items-center justify-end px-4 pt-safe h-9 shrink-0">
         <SyncIndicator />
       </div>
+      <ToastContainer />
 
       {/* Main Content Area */}
       <main className="flex-1 overflow-y-auto pb-24">
