@@ -95,6 +95,9 @@ export function MaterialDetail() {
   const [totalPrice, setTotalPrice] = useState(0);
   const [quantity, setQuantity] = useState(0);
   const [unitCost, setUnitCost] = useState(0);
+  const [shippingFee, setShippingFee] = useState(0);
+  const [handlingFee, setHandlingFee] = useState(0);
+  const [batchNotes, setBatchNotes] = useState('');
 
   if (!material) {
     return <div className="p-8 text-center text-gray-500">找不到材料</div>;
@@ -106,18 +109,23 @@ export function MaterialDetail() {
     e.preventDefault();
     if (quantity <= 0) { toast.error('請填寫數量'); return; }
 
+    const productTotal = totalPrice || (unitCost * quantity);
     addBatch({
       id: crypto.randomUUID(),
       materialId: material.id,
       sourceId: selectedSourceId,
-      totalPrice: totalPrice || (unitCost * quantity),
+      totalPrice: productTotal,
       quantity,
       remaining: quantity,
       unitCost,
+      shippingFee,
+      handlingFee,
+      notes: batchNotes,
       createdAt: Date.now()
     });
     setShowBatchForm(false);
     setTotalPrice(0); setQuantity(0); setUnitCost(0); setSelectedSourceId(null);
+    setShippingFee(0); setHandlingFee(0); setBatchNotes('');
     toast.success('進貨紀錄已登錄！');
   };
 
@@ -260,43 +268,91 @@ export function MaterialDetail() {
       {/* Add Batch Bottom Sheet */}
       {showBatchForm && (
         <div className="fixed inset-0 z-50 bg-black/40 flex items-end animate-in fade-in duration-200">
-          <div className="bg-white w-full rounded-t-3xl p-6 pb-safe animate-in slide-in-from-bottom duration-300">
-            <div className="flex justify-between items-center mb-6">
+          <div className="bg-white w-full rounded-t-3xl pb-safe animate-in slide-in-from-bottom duration-300 max-h-[92vh] flex flex-col">
+            <div className="flex justify-between items-center p-6 pb-4 border-b">
               <h3 className="font-bold text-xl">登錄進貨</h3>
               <button onClick={() => setShowBatchForm(false)} className="text-gray-400 bg-gray-100 p-2 rounded-full"><X size={18} /></button>
             </div>
 
-            <form onSubmit={handleAddBatch} className="flex flex-col gap-4">
-              {/* Source picker button */}
-              <div>
-                <label className="block text-xs font-medium text-foreground/60 mb-1">進貨來源</label>
+            <div className="overflow-y-auto flex-1 p-6">
+              <form onSubmit={handleAddBatch} className="flex flex-col gap-4">
+                {/* Source picker button */}
+                <div>
+                  <label className="block text-xs font-medium text-foreground/60 mb-1">進貨管道</label>
+                  <button
+                    type="button"
+                    onClick={() => setShowSourcePicker(true)}
+                    className="w-full flex items-center gap-2 p-3 rounded-xl border bg-gray-50 text-sm text-left hover:border-primary transition-colors"
+                  >
+                    <Store size={16} className="text-gray-400" />
+                    <span className={selectedSourceName ? 'text-foreground font-medium' : 'text-gray-400'}>
+                      {selectedSourceName || '點擊選擇進貨管道...'}
+                    </span>
+                  </button>
+                </div>
+
+                <div>
+                  <BatchPriceInput
+                    defaultUnit={type?.defaultUnit}
+                    onChange={(q, u, t) => { setQuantity(q); setUnitCost(u); setTotalPrice(t); }}
+                  />
+                </div>
+
+                {/* Shipping + Handling */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-foreground/60 mb-1">運費（元）</label>
+                    <input
+                      type="number" inputMode="decimal" min="0" step="any"
+                      value={shippingFee || ''}
+                      onChange={e => setShippingFee(parseFloat(e.target.value) || 0)}
+                      placeholder="0"
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-foreground/60 mb-1">手續費（元）</label>
+                    <input
+                      type="number" inputMode="decimal" min="0" step="any"
+                      value={handlingFee || ''}
+                      onChange={e => setHandlingFee(parseFloat(e.target.value) || 0)}
+                      placeholder="0"
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                    />
+                  </div>
+                </div>
+
+                {/* Grand total */}
+                {(quantity > 0 || shippingFee > 0 || handlingFee > 0) && (
+                  <div className="bg-primary/8 border border-primary/20 rounded-xl px-4 py-3 flex justify-between items-center">
+                    <span className="text-sm font-bold text-primary">此次合計花費</span>
+                    <span className="text-lg font-black text-primary">
+                      {((totalPrice || (unitCost * quantity)) + shippingFee + handlingFee).toLocaleString()} 元
+                    </span>
+                  </div>
+                )}
+
+                {/* Notes */}
+                <div>
+                  <label className="block text-xs font-medium text-foreground/60 mb-1">備注</label>
+                  <textarea
+                    value={batchNotes}
+                    onChange={e => setBatchNotes(e.target.value)}
+                    placeholder="輸入備注..."
+                    rows={2}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none resize-none"
+                  />
+                </div>
+
                 <button
-                  type="button"
-                  onClick={() => setShowSourcePicker(true)}
-                  className="w-full flex items-center gap-2 p-3 rounded-xl border bg-gray-50 text-sm text-left hover:border-primary transition-colors"
+                  type="submit"
+                  disabled={!quantity}
+                  className="mt-1 w-full bg-primary text-white py-4 rounded-xl font-bold tracking-wider hover:opacity-90 active:scale-95 transition-transform disabled:opacity-50"
                 >
-                  <Store size={16} className="text-gray-400" />
-                  <span className={selectedSourceName ? 'text-foreground font-medium' : 'text-gray-400'}>
-                    {selectedSourceName || '點擊選擇進貨來源...'}
-                  </span>
+                  確認新增進貨
                 </button>
-              </div>
-
-              <div>
-                <BatchPriceInput
-                  defaultUnit={type?.defaultUnit}
-                  onChange={(q, u, t) => { setQuantity(q); setUnitCost(u); setTotalPrice(t); }}
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={!quantity}
-                className="mt-2 w-full bg-primary text-white py-4 rounded-xl font-bold tracking-wider hover:opacity-90 active:scale-95 transition-transform disabled:opacity-50"
-              >
-                確認新增進貨
-              </button>
-            </form>
+              </form>
+            </div>
           </div>
         </div>
       )}

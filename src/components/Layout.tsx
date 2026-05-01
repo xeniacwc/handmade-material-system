@@ -1,5 +1,5 @@
-import { Outlet, NavLink } from 'react-router-dom';
-import { Package, ScrollText, Scissors, ShoppingCart, WifiOff, Loader2, Settings as SettingsIcon } from 'lucide-react';
+import { Outlet, NavLink, Link } from 'react-router-dom';
+import { Package, ScrollText, Scissors, ShoppingCart, WifiOff, Loader2, Settings as SettingsIcon, ClipboardList } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { useStore } from '../store/useStore';
@@ -43,14 +43,17 @@ export function Layout() {
     { to: '/recipes', icon: ScrollText, label: '配方' },
     { to: '/materials', icon: Scissors, label: '材料' },
     { to: '/shopping-list', icon: ShoppingCart, label: '進貨清單' },
-    { to: '/settings', icon: SettingsIcon, label: '設定' },
+    { to: '/purchase-history', icon: ClipboardList, label: '進貨紀錄' },
   ];
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-background">
       {/* Top status bar */}
-      <div className="flex items-center justify-end px-4 pt-safe h-9 shrink-0">
+      <div className="flex items-center justify-between px-4 pt-safe h-9 shrink-0">
         <SyncIndicator />
+        <Link to="/settings" className="p-1 text-foreground/40 hover:text-foreground/70 transition-colors" title="設定">
+          <SettingsIcon size={16} />
+        </Link>
       </div>
       <ToastContainer />
 

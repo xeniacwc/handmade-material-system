@@ -1,8 +1,9 @@
 import React, { useState, useRef } from 'react';
 import { useStore } from '../../store/useStore';
 import type { NamingOption, PurchaseSource } from '../../store/useStore';
-import { Settings as SettingsIcon, Plus, X, Tag, Pencil, Check } from 'lucide-react';
+import { Settings as SettingsIcon, Plus, X, Pencil, Check } from 'lucide-react';
 import { toast } from '../../components/Toast';
+import { tx, layout } from '../../lib/design';
 
 /* ── Editable chip for a single naming option ── */
 function OptionChip({ opt, onDelete, onUpdate, suffix }: {
@@ -208,40 +209,39 @@ function SourcesSection() {
 /* ── Main page ── */
 export function SettingsList() {
   return (
-    <div className="p-4 animate-in fade-in duration-300 pb-24 max-w-2xl mx-auto">
-      <div className="flex items-center gap-2 mb-4 pl-2">
-        <SettingsIcon className="text-foreground" size={24} />
-        <h1 className="text-2xl font-bold text-foreground">屬性與來源設定</h1>
-      </div>
+    <div className="min-h-full">
+      <header className={layout.pageHeader}>
+        <div className={layout.pageHeaderRow}>
+          <div>
+            <h1 className={tx.pageTitle}>設定</h1>
+            <p className={tx.meta}>屬性、標籤與來源管理</p>
+          </div>
+          <SettingsIcon size={20} className="text-foreground/30" />
+        </div>
+      </header>
 
-      <div className="mb-4 px-2 text-xs text-gray-500 leading-relaxed">
-        在此設定各類材料的屬性選項。尺寸類屬性會自動加上 mm 單位，只需填數字即可。點擊 <Pencil size={11} className="inline" /> 可直接編輯現有選項名稱。
-      </div>
+      <div className={`${layout.body} py-4`}>
+        <div className="flex flex-col gap-1">
+          <p className="text-[11px] font-bold text-foreground/40 uppercase tracking-widest mb-2 px-1">線材屬性</p>
+          <AttributeSection title="材質" category="wire_material" />
+          <AttributeSection title="線徑" category="wire_diameter" suffix="mm" />
+          <AttributeSection title="顏色" category="wire_color" />
 
-      <div className="space-y-6">
-        <section>
-          <h2 className="text-sm font-black text-primary mb-2 flex items-center gap-2 px-1"><Tag size={16}/> 一、串珠專用屬性</h2>
+          <p className="text-[11px] font-bold text-foreground/40 uppercase tracking-widest mb-2 mt-3 px-1">珠珠屬性</p>
           <AttributeSection title="材質" category="bead_material" />
-          <AttributeSection title="形狀" category="bead_shape" />
-          <AttributeSection title="顏色" category="bead_color" />
-          <AttributeSection title="表面與處理（可複選）" category="bead_surface" />
           <AttributeSection title="尺寸" category="bead_size" suffix="mm" />
-        </section>
+          <AttributeSection title="顏色" category="bead_color" />
+          <AttributeSection title="形狀" category="bead_shape" />
 
-        <section>
-          <h2 className="text-sm font-black text-primary mb-2 flex items-center gap-2 px-1"><Tag size={16}/> 二、線材專用屬性</h2>
-          <AttributeSection title="材料" category="wire_material" />
-          <AttributeSection title="直徑" category="wire_diameter" suffix="mm" />
-        </section>
-
-        <section>
-          <h2 className="text-sm font-black text-primary mb-2 flex items-center gap-2 px-1"><Tag size={16}/> 三、五金專用屬性</h2>
-          <AttributeSection title="種類" category="hardware_material" />
-          <AttributeSection title="顏色" category="hardware_color" />
+          <p className="text-[11px] font-bold text-foreground/40 uppercase tracking-widest mb-2 mt-3 px-1">配件屬性</p>
+          <AttributeSection title="類型" category="hardware_type" />
+          <AttributeSection title="材質" category="hardware_material" />
           <AttributeSection title="尺寸" category="hardware_size" suffix="mm" />
-        </section>
+          <AttributeSection title="顏色" category="hardware_color" />
 
-        <SourcesSection />
+          <p className="text-[11px] font-bold text-foreground/40 uppercase tracking-widest mb-2 mt-3 px-1">進貨管道</p>
+          <SourcesSection />
+        </div>
       </div>
     </div>
   );

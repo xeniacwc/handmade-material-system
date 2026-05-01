@@ -109,6 +109,9 @@ export async function fetchAllData(): Promise<AllData> {
       quantity: b.quantity,
       remaining: b.remaining,
       unitCost: b.unit_cost,
+      shippingFee: b.shipping_fee ?? 0,
+      handlingFee: b.handling_fee ?? 0,
+      notes: b.notes ?? '',
       createdAt: b.created_at,
     })),
     recipes,
@@ -219,8 +222,24 @@ export async function dbAddBatch(b: MaterialBatch) {
     quantity: b.quantity,
     remaining: b.remaining,
     unit_cost: b.unitCost,
+    shipping_fee: b.shippingFee ?? 0,
+    handling_fee: b.handlingFee ?? 0,
+    notes: b.notes ?? '',
     created_at: b.createdAt,
   });
+}
+
+export async function dbUpdateBatch(id: string, partial: Partial<MaterialBatch>) {
+  const patch: Record<string, unknown> = {};
+  if (partial.sourceId !== undefined) patch.source_id = partial.sourceId;
+  if (partial.totalPrice !== undefined) patch.total_price = partial.totalPrice;
+  if (partial.quantity !== undefined) patch.quantity = partial.quantity;
+  if (partial.remaining !== undefined) patch.remaining = partial.remaining;
+  if (partial.unitCost !== undefined) patch.unit_cost = partial.unitCost;
+  if (partial.shippingFee !== undefined) patch.shipping_fee = partial.shippingFee;
+  if (partial.handlingFee !== undefined) patch.handling_fee = partial.handlingFee;
+  if (partial.notes !== undefined) patch.notes = partial.notes;
+  await supabase.from('material_batches').update(patch).eq('id', id);
 }
 
 export async function dbAddRecipe(r: Recipe) {

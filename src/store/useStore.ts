@@ -12,6 +12,7 @@ import {
   dbAddMaterials,
   dbUpdateMaterial,
   dbAddBatch,
+  dbUpdateBatch,
   dbAddRecipe,
   dbAddProduct,
   dbSaveProductRecord,
@@ -49,6 +50,9 @@ export interface MaterialBatch {
   quantity: number;
   remaining: number;
   unitCost: number;
+  shippingFee: number;
+  handlingFee: number;
+  notes: string;
   createdAt: number;
 }
 
@@ -98,6 +102,7 @@ interface AppState {
   addMaterials: (m: Material[]) => void;
   updateMaterial: (id: string, m: Partial<Material>) => void;
   addBatch: (b: MaterialBatch) => void;
+  updateBatch: (id: string, partial: Partial<MaterialBatch>) => void;
   addRecipe: (r: Recipe) => void;
   addProduct: (p: Product) => void;
   addNamingOption: (n: NamingOption) => void;
@@ -199,6 +204,13 @@ export const useStore = create<AppState>()(
         dbAddBatch(b).catch((e) => console.error('[Supabase] addBatch:', e));
       },
 
+      updateBatch: (id, partial) => {
+        set((s) => ({
+          batches: s.batches.map(b => b.id === id ? { ...b, ...partial } : b)
+        }));
+        dbUpdateBatch(id, partial).catch((e) => console.error('[Supabase] updateBatch:', e));
+      },
+
       addRecipe: (r) => {
         set((s) => ({ recipes: [r, ...s.recipes] }));
         dbAddRecipe(r).catch((e) => console.error('[Supabase] addRecipe:', e));
@@ -262,6 +274,9 @@ export const useStore = create<AppState>()(
           quantity: item.quantity,
           remaining: item.quantity,
           unitCost: item.unitCost,
+          shippingFee: 0,
+          handlingFee: 0,
+          notes: '',
           createdAt: now + idx,
         }));
         set((s) => ({ batches: [...newBatches, ...s.batches] }));

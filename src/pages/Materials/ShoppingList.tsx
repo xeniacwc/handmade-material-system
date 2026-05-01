@@ -5,6 +5,7 @@ import type { ShoppingItem } from '../../store/useStore';
 import { Package, Trash2, CheckCircle, Store, Plus, X } from 'lucide-react';
 import { BatchPriceInput } from '../../components/BatchPriceInput';
 import { toast } from '../../components/Toast';
+import { btn, tx, layout } from '../../lib/design';
 
 /* ── Bottom Sheet: Source Picker ── */
 function SourcePicker({ currentSourceId, sources, onSelect, onClose }: {
@@ -85,18 +86,22 @@ export function ShoppingList() {
   const sourcePickerItem = sourcePickerItemId ? shoppingItems.find(i => i.id === sourcePickerItemId) : null;
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50 pb-16">
-      <header className="flex items-center justify-between px-4 pt-5 pb-3 bg-white border-b">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">進貨清單</h1>
-          <p className="text-sm text-foreground/50 mt-0.5">共 {shoppingItems.length} 項待進貨</p>
+    <div className="min-h-full">
+      {/* ── FIXED PAGE HEADER ── */}
+      <header className={layout.pageHeader}>
+        <div className={layout.pageHeaderRow}>
+          <div>
+            <h1 className={tx.pageTitle}>進貨清單</h1>
+            <p className={tx.meta}>共 {shoppingItems.length} 項待進貨</p>
+          </div>
+          <button onClick={() => navigate('/materials/new?redirect=restock')} className={btn.secondary} title="建立新材料並加入清單">
+            <Plus size={14} /> 新增材料
+          </button>
         </div>
-        <button onClick={() => navigate('/materials/new?redirect=restock')} className="flex items-center gap-1.5 bg-black text-white px-3 py-2 rounded-full text-sm font-bold active:scale-95 transition-transform" title="建立新材料並加入清單">
-          <Plus size={16} /> 新增材料
-        </button>
       </header>
 
-      <div className="flex-1 overflow-y-auto p-4 max-w-2xl mx-auto w-full">
+      {/* ── BODY ── */}
+      <div className={`${layout.body} py-4`}>
         {shoppingItems.length === 0 ? (
           <div className="flex flex-col items-center justify-center text-gray-400 mt-20">
             <Package size={48} className="mb-4 stroke-[1.5]" />
