@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+
 import { useStore } from '../../store/useStore';
 import type { ShoppingItem } from '../../store/useStore';
-import { Package, Trash2, CheckCircle, Store, Plus, X } from 'lucide-react';
+import { Package, Trash2, CheckCircle, Store, X } from 'lucide-react';
 import { BatchPriceInput } from '../../components/BatchPriceInput';
 import { toast } from '../../components/Toast';
-import { btn, tx, layout } from '../../lib/design';
+import { tx, layout } from '../../lib/design';
 
 /* ── Bottom Sheet: Source Picker ── */
 function SourcePicker({ currentSourceId, sources, onSelect, onClose }: {
@@ -48,7 +48,6 @@ function SourcePicker({ currentSourceId, sources, onSelect, onClose }: {
 }
 
 export function ShoppingList() {
-  const navigate = useNavigate();
   const { shoppingItems, materials, sources, updateShoppingItem, removeShoppingItem, checkoutShoppingItems } = useStore();
 
   const [selectedSourceIds, setSelectedSourceIds] = useState<string[]>([]);
@@ -94,9 +93,6 @@ export function ShoppingList() {
             <h1 className={tx.pageTitle}>進貨清單</h1>
             <p className={tx.meta}>共 {shoppingItems.length} 項待進貨</p>
           </div>
-          <button onClick={() => navigate('/materials/new?redirect=restock')} className={btn.secondary} title="建立新材料並加入清單">
-            <Plus size={14} /> 新增材料
-          </button>
         </div>
       </header>
 
@@ -106,7 +102,7 @@ export function ShoppingList() {
           <div className="flex flex-col items-center justify-center text-gray-400 mt-20">
             <Package size={48} className="mb-4 stroke-[1.5]" />
             <p className="text-sm">進貨清單目前是空的</p>
-            <p className="text-xs mt-2">到材料庫批次選取材料，或點右上角建立新材料</p>
+            <p className="text-xs mt-2">到材料庫批次選取材料加入清單</p>
           </div>
         ) : (
           <div className="flex flex-col gap-5">

@@ -28,14 +28,42 @@ export function MaterialForm() {
   const [customName, setCustomName] = useState('');
   const [notes, setNotes] = useState('');
 
+  const getComputedPrefix = (cat: string, attrs: Record<string, any>) => {
+    if (cat === 'bead') {
+      const mat = attrs['bead_material'];
+      const shape = attrs['bead_shape'];
+      const color = attrs['bead_color'];
+      const arr = Array.isArray(attrs['bead_surface']) ? attrs['bead_surface'] : [];
+      const size = attrs['bead_size'];
+      return [mat, shape, color, ...arr, size].filter(Boolean).join('');
+    } else if (cat === 'wire') {
+      const mat = attrs['wire_material'];
+      const diam = attrs['wire_diameter'];
+      return [mat, diam].filter(Boolean).join('');
+    } else if (cat === 'hardware') {
+      const mat = attrs['hardware_material'];
+      const col = attrs['hardware_color'];
+      const size = attrs['hardware_size'];
+      return [mat, col, size].filter(Boolean).join('');
+    }
+    return '';
+  };
+
   // Initial load
   useEffect(() => {
     if (isEditMode && existingMaterial) {
       setImage(existingMaterial.image);
-      setCustomName(existingMaterial.name === '待補' ? '' : existingMaterial.name);
       setMajorCategory(existingMaterial.majorCategory);
       setAttributes(existingMaterial.attributes || {});
       setNotes(existingMaterial.notes || '');
+      
+      const prefix = getComputedPrefix(existingMaterial.majorCategory, existingMaterial.attributes || {});
+      const currentName = existingMaterial.name === '待補' ? '' : existingMaterial.name;
+      if (currentName.startsWith(prefix)) {
+        setCustomName(currentName.substring(prefix.length).trim());
+      } else {
+        setCustomName(currentName);
+      }
     }
   }, [isEditMode, existingMaterial]);
 
@@ -95,24 +123,7 @@ export function MaterialForm() {
   };
 
   // Computed prefix Name
-  let computedPrefix = '';
-  if (majorCategory === 'bead') {
-    const mat = attributes['bead_material'];
-    const shape = attributes['bead_shape'];
-    const color = attributes['bead_color'];
-    const arr = Array.isArray(attributes['bead_surface']) ? attributes['bead_surface'] : [];
-    const size = attributes['bead_size'];
-    computedPrefix = [mat, shape, color, ...arr, size].filter(Boolean).join('');
-  } else if (majorCategory === 'wire') {
-    const mat = attributes['wire_material'];
-    const diam = attributes['wire_diameter'];
-    computedPrefix = [mat, diam].filter(Boolean).join('');
-  } else if (majorCategory === 'hardware') {
-    const mat = attributes['hardware_material'];
-    const col = attributes['hardware_color'];
-    const size = attributes['hardware_size'];
-    computedPrefix = [mat, col, size].filter(Boolean).join('');
-  }
+  const computedPrefix = getComputedPrefix(majorCategory, attributes);
 
   const finalName = computedPrefix ? `${computedPrefix} ${customName}`.trim() : customName.trim();
 
@@ -172,30 +183,35 @@ export function MaterialForm() {
           <ImageUploader value={image} onChange={setImage} />
 
           <div className="bg-white p-4 rounded-2xl shadow-sm border mb-5 mt-4">
-            <h2 className="font-bold text-sm mb-3">材料大類 {isEditMode && '(不可修改)'}</h2>
-            <div className="grid grid-cols-3 gap-2">
-              {[
-                { id: 'bead', label: '串珠' },
-                { id: 'wire', label: '線材' },
-                { id: 'hardware', label: '五金' },
-              ].map(cat => (
-                <button
-                  key={cat.id}
-                  type="button"
-                  disabled={isEditMode && majorCategory !== cat.id}
-                  onClick={() => {
-                    setMajorCategory(cat.id as any);
-                    setAttributes({});
-                  }}
-                  className={cn(
-                    "py-2.5 rounded-xl text-center text-sm font-bold transition-colors disabled:opacity-50",
-                    majorCategory === cat.id ? "bg-gray-800 text-white" : "bg-gray-100 text-gray-500"
-                  )}
-                >
-                  {cat.label}
-                </button>
-              ))}
-            </div>
+            <h2 className="font-bold text-sm mb-3">材料大類</h2>
+            {isEditMode ? (
+              <div className="py-2.5 rounded-xl text-center text-sm font-bold bg-gray-100 text-gray-500">
+                {majorCategory === 'bead' ? '串珠' : majorCategory === 'wire' ? '線材' : '五金'}
+              </div>
+            ) : (
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { id: 'bead', label: '串珠' },
+                  { id: 'wire', label: '線材' },
+                  { id: 'hardware', label: '五金' },
+                ].map(cat => (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    onClick={() => {
+                      setMajorCategory(cat.id as any);
+                      setAttributes({});
+                    }}
+                    className={cn(
+                      "py-2.5 rounded-xl text-center text-sm font-bold transition-colors",
+                      majorCategory === cat.id ? "bg-gray-800 text-white" : "bg-gray-100 text-gray-500"
+                    )}
+                  >
+                    {cat.label}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="bg-white p-5 rounded-2xl shadow-sm border flex flex-col mb-5">

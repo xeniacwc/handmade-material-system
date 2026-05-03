@@ -145,7 +145,7 @@ export function MaterialList() {
             </button>
             <button onClick={() => fileInputRef.current?.click()} disabled={isUploading} className={btn.secondary}>
               {isUploading ? <Loader2 size={13} className="animate-spin" /> : <Upload size={13} />}
-              上傳
+              新增材料
             </button>
           </div>
         </div>

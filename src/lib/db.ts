@@ -123,11 +123,14 @@ export async function fetchAllData(): Promise<AllData> {
       createdAt: p.created_at,
     })),
     productRecords,
-    namingOptions: (namingOptionsRaw || []).map((no) => ({
-      id: no.id,
-      category: no.category,
-      value: no.value,
-    })),
+    namingOptions: (namingOptionsRaw || [])
+      .map((no) => ({
+        id: no.id,
+        category: no.category,
+        value: no.value,
+        sort_order: no.sort_order ?? 0,
+      }))
+      .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0)),
     shoppingItems: (shoppingItemsRaw || []).map((s) => ({
       id: s.id,
       materialId: s.material_id,
@@ -143,7 +146,7 @@ export async function fetchAllData(): Promise<AllData> {
 // INSERT & DELETE helpers
 // ──────────────────────────────────────────
 export async function dbAddNamingOption(no: NamingOption) {
-  await supabase.from('naming_options').insert({ id: no.id, category: no.category, value: no.value });
+  await supabase.from('naming_options').insert({ id: no.id, category: no.category, value: no.value, sort_order: no.sort_order ?? 0 });
 }
 
 export async function dbDeleteNamingOption(id: string) {
@@ -152,6 +155,14 @@ export async function dbDeleteNamingOption(id: string) {
 
 export async function dbUpdateNamingOption(id: string, value: string) {
   await supabase.from('naming_options').update({ value }).eq('id', id);
+}
+
+export async function dbUpdateNamingOptionsOrder(updates: { id: string; sort_order: number }[]) {
+  await Promise.all(
+    updates.map((u) =>
+      supabase.from('naming_options').update({ sort_order: u.sort_order }).eq('id', u.id)
+    )
+  );
 }
 
 export async function dbUpdateSource(id: string, name: string) {

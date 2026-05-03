@@ -2,21 +2,42 @@ import React, { useState, useRef } from 'react';
 import { useStore } from '../../store/useStore';
 import type { NamingOption, PurchaseSource } from '../../store/useStore';
 import { Settings as SettingsIcon, Plus, X, Pencil, Check } from 'lucide-react';
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import type { DragEndEvent } from '@dnd-kit/core';
+import { SortableContext, sortableKeyboardCoordinates, horizontalListSortingStrategy, arrayMove, useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { GripVertical } from 'lucide-react';
 import { toast } from '../../components/Toast';
 import { tx, layout } from '../../lib/design';
 
-/* ── Editable chip for a single naming option ── */
-function OptionChip({ opt, onDelete, onUpdate, suffix }: {
+function OptionChip({ opt, onDelete, onUpdate, suffix, isDraggable }: {
   opt: NamingOption;
   suffix?: string;
   onDelete: (id: string) => void;
   onUpdate: (id: string, value: string) => void;
+  isDraggable?: boolean;
 }) {
   const [editing, setEditing] = useState(false);
   // strip suffix for display in edit mode
   const rawValue = suffix ? opt.value.replace(new RegExp(`${suffix}$`), '') : opt.value;
   const [editVal, setEditVal] = useState(rawValue);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: opt.id, disabled: !isDraggable || editing });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 10 : 1,
+  };
 
   const handleEdit = () => {
     setEditing(true);
@@ -52,7 +73,12 @@ function OptionChip({ opt, onDelete, onUpdate, suffix }: {
   }
 
   return (
-    <div className="bg-primary/10 text-primary px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1.5 transition-all">
+    <div ref={setNodeRef} style={style} className={`bg-primary/10 text-primary py-1 rounded-full text-xs font-medium flex items-center gap-1.5 transition-all outline-none ${isDraggable ? 'pl-2 pr-3' : 'px-3'}`}>
+      {isDraggable && (
+        <div {...attributes} {...listeners} className="text-primary/40 hover:text-primary cursor-grab active:cursor-grabbing touch-none p-0.5">
+          <GripVertical size={13} />
+        </div>
+      )}
       <span>{opt.value}</span>
       <button onClick={handleEdit} className="text-primary/60 hover:text-primary p-0.5 rounded-full" title="編輯">
         <Pencil size={11} />
@@ -106,8 +132,21 @@ function SourceChip({ src, onUpdate }: { src: PurchaseSource; onUpdate: (id: str
 
 /* ── Attribute section ── */
 function AttributeSection({ title, category, suffix }: { title: string; category: string; suffix?: string }) {
-  const { namingOptions, addNamingOption, deleteNamingOption, updateNamingOption } = useStore();
-  const options = namingOptions.filter(o => o.category === category);
+  const { namingOptions, addNamingOption, deleteNamingOption, updateNamingOption, updateNamingOptionsOrder } = useStore();
+  
+  const isNumeric = suffix === 'mm';
+  let options = namingOptions.filter(o => o.category === category);
+  
+  if (isNumeric) {
+    options.sort((a, b) => {
+      const numA = parseFloat(a.value.replace(suffix || '', '')) || 0;
+      const numB = parseFloat(b.value.replace(suffix || '', '')) || 0;
+      return numB - numA;
+    });
+  } else {
+    options.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+  }
+  
   const [inputValue, setInputValue] = useState('');
 
   const handleAdd = (e: React.FormEvent) => {
@@ -123,20 +162,44 @@ function AttributeSection({ title, category, suffix }: { title: string; category
     toast.success(`已新增「${finalVal}」`);
   };
 
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      const oldIndex = options.findIndex(o => o.id === active.id);
+      const newIndex = options.findIndex(o => o.id === over.id);
+      const reordered = arrayMove(options, oldIndex, newIndex);
+      
+      const updates = reordered.map((opt, index) => ({
+        id: opt.id,
+        sort_order: index
+      }));
+      updateNamingOptionsOrder(updates);
+    }
+  };
+
   return (
     <div className="bg-white p-4 rounded-xl shadow-sm border mb-3">
       <h3 className="font-bold text-sm text-foreground/80 mb-3">{title}</h3>
       <div className="flex flex-wrap gap-2 mb-3">
         {options.length === 0 && <span className="text-xs text-gray-400">尚無選項</span>}
-        {options.map(opt => (
-          <OptionChip
-            key={opt.id}
-            opt={opt}
-            suffix={suffix}
-            onDelete={deleteNamingOption}
-            onUpdate={updateNamingOption}
-          />
-        ))}
+        {isNumeric ? (
+          options.map(opt => (
+            <OptionChip key={opt.id} opt={opt} suffix={suffix} onDelete={deleteNamingOption} onUpdate={updateNamingOption} isDraggable={false} />
+          ))
+        ) : (
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={options.map(o => o.id)} strategy={horizontalListSortingStrategy}>
+              {options.map(opt => (
+                <OptionChip key={opt.id} opt={opt} suffix={suffix} onDelete={deleteNamingOption} onUpdate={updateNamingOption} isDraggable={true} />
+              ))}
+            </SortableContext>
+          </DndContext>
+        )}
       </div>
       <form onSubmit={handleAdd} className="flex gap-2">
         <input

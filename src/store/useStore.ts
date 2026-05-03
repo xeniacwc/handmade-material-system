@@ -19,6 +19,7 @@ import {
   dbAddNamingOption,
   dbDeleteNamingOption,
   dbUpdateNamingOption,
+  dbUpdateNamingOptionsOrder,
   dbAddShoppingItem,
   dbUpdateShoppingItem,
   dbDeleteShoppingItem,
@@ -31,6 +32,7 @@ export interface NamingOption {
   id: string;
   category: string;
   value: string;
+  sort_order?: number;
 }
 
 export interface ShoppingItem {
@@ -108,6 +110,7 @@ interface AppState {
   addNamingOption: (n: NamingOption) => void;
   deleteNamingOption: (id: string) => void;
   updateNamingOption: (id: string, value: string) => void;
+  updateNamingOptionsOrder: (updates: { id: string; sort_order: number }[]) => void;
   updateSource: (id: string, name: string) => void;
 
   // Shopping List
@@ -234,6 +237,16 @@ export const useStore = create<AppState>()(
       updateNamingOption: (id, value) => {
         set((s) => ({ namingOptions: s.namingOptions.map(no => no.id === id ? { ...no, value } : no) }));
         dbUpdateNamingOption(id, value).catch((e) => console.error('[Supabase] updateNamingOption:', e));
+      },
+
+      updateNamingOptionsOrder: (updates) => {
+        set((s) => {
+          const map = new Map(updates.map(u => [u.id, u.sort_order]));
+          const next = s.namingOptions.map(no => map.has(no.id) ? { ...no, sort_order: map.get(no.id)! } : no);
+          next.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+          return { namingOptions: next };
+        });
+        dbUpdateNamingOptionsOrder(updates).catch((e) => console.error('[Supabase] updateNamingOptionsOrder:', e));
       },
 
       updateSource: (id, name) => {

@@ -156,12 +156,17 @@ export function MaterialDetail() {
             <div className="flex-1 min-w-0">
               <span className="bg-primary/10 text-primary px-2 py-1 rounded text-xs font-bold">{type?.name}</span>
               <h2 className="text-2xl font-bold text-foreground mt-2 break-words leading-tight">{material.name}</h2>
-              <div className="flex flex-wrap gap-1 mt-3">
+              <div className="flex flex-wrap gap-1 mt-3 mb-2">
                 {material.tagIds.map(tid => {
                   const tag = tags.find(x => x.id === tid);
                   return tag && <span key={tid} className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-xs">#{tag.name}</span>;
                 })}
               </div>
+              {material.notes && (
+                <div className="mt-3 text-sm text-gray-500 whitespace-pre-wrap leading-relaxed border-t pt-2">
+                  {material.notes}
+                </div>
+              )}
             </div>
           </div>
 
